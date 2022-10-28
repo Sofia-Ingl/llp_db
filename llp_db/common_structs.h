@@ -16,5 +16,9 @@ enum DB_Data_Type {
 	STRING
 };
 
+enum Boolean {
+	FALSE,
+	TRUE
+};
 
 #endif

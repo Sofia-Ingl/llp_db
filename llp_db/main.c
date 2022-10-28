@@ -11,6 +11,8 @@ int main() {
 	table_schema_expand(&schema, "col2", STRING);
 	table_create(fh, "tab1", schema);
 
+	table_create(fh, "tab2", schema);
+
 	char c = getchar();
 	return 0;
 }

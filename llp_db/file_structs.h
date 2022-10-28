@@ -19,6 +19,7 @@ struct __attribute__((packed)) File_Header {
 	uint16_t tables_number;
 	//uint16_t gaps_number;
 	uint32_t first_gap_offset;
+	uint32_t last_gap_offset;
 	uint32_t first_table_offset;
 	uint32_t last_table_offset;
 };
@@ -32,6 +33,7 @@ struct __attribute__((packed)) Table_Header {
 	uint32_t first_row_offset;
 	uint32_t last_row_offset;
 	uint32_t next_table_header_offset;
+	uint32_t prev_table_header_offset;
 	struct String_Metadata table_name_metadata;
 };
 
@@ -42,11 +44,13 @@ struct __attribute__((packed)) Column_Header {
 
 struct __attribute__((packed)) Row_Header {
 	uint32_t next_row_header_offset;
+	uint32_t prev_row_header_offset;
 	uint16_t row_size;
 };
 
 struct __attribute__((packed)) Gap_Header {
 	uint32_t next_gap_header_offset;
+	uint32_t prev_gap_header_offset;
 	uint16_t gap_size;
 };
 
