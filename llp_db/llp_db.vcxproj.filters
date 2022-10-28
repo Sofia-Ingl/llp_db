@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="file">
+      <UniqueIdentifier>{e33d56ef-382c-4300-b235-d40ce06270a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ram">
+      <UniqueIdentifier>{9341266e-b9b6-4e89-b698-490e936b2992}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="file_handler.c">
+      <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c" />
+    <ClCompile Include="Makefile" />
+    <ClCompile Include="query_handler.c">
+      <Filter>ram</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="file_handler.h">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="file_structs.h">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="common_structs.h">
+      <Filter>ram</Filter>
+    </ClInclude>
+    <ClInclude Include="ram_structs.h">
+      <Filter>ram</Filter>
+    </ClInclude>
+    <ClInclude Include="query_handler.h">
+      <Filter>ram</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
