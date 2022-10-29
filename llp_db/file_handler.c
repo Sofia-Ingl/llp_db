@@ -592,10 +592,10 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 	return 0;
 }
 
+
 void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_Row_Node* data_row) {
-	
+
 	struct Table_Header* tab_header = (struct Table_Header*)tab_metadata_buffer;
-	uint8_t column_is_present[tab_header->columns_number];
 
 	void* buffer = malloc(DB_MAX_ROW_SIZE);
 	struct Row_Header* row_header = (struct Row_Header*)buffer;
@@ -610,99 +610,85 @@ void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_R
 
 	uint32_t found_cols_num = 0;
 
-	while (current_row != NULL) {
-
-		void* curr_column_metadata = (void*)((uint8_t*)tab_metadata_buffer + sizeof(struct Table_Header) + tab_header->table_name_metadata.length + 1);
-		struct String col_name = current_row->column_name;
-		uint8_t found = 0;
-		for (uint32_t i = 0; i < tab_header->columns_number; i++) {
-
-			struct Column_Header* col_header = (struct Column_Header*)curr_column_metadata;
-			printf("cur col %s\n", (uint8_t*)curr_column_metadata + sizeof(struct Column_Header));
-			if (column_is_present[i] == 1) {
-				// skip
-				printf("skip\n");
-				curr_column_metadata = (void*) ((uint8_t*)curr_column_metadata + sizeof(struct Column_Header) + (col_header->column_name_metadata).length + 1);
-				continue;
-			}
-			if (col_header->column_name_metadata.hash == col_name.hash) {
-				char* current_schema_col_name = (char*)curr_column_metadata + sizeof(struct Column_Header);
-				if (strcmp(current_schema_col_name, col_name.value) == 0) {
-					// found
-					column_is_present[i] = 1;
-					if (col_header->data_type != current_row->new_value.data_type) {
-						printf("INVALID DATA TYPE!");
-						/*error*/
-						free(buffer);
-						return NULL;
-					}
-					found = 1;
-					found_cols_num++;
-
-					/*write data*/
-					
-					uint32_t bytes_num_to_write;
-					if (col_header->data_type == STRING) {
-						bytes_num_to_write = sizeof(struct String_Metadata) + current_row->new_value.value.db_string.length + 1;
-						
-					}
-					if (col_header->data_type == INT) {
-						bytes_num_to_write = sizeof(int32_t);
-
-					}
-					if (col_header->data_type == FLOAT) {
-						bytes_num_to_write = sizeof(float);
-
-					}
-					if (col_header->data_type == BOOL) {
-						bytes_num_to_write = sizeof(enum Boolean);
-
-					}
-
-					if (bytes_num_to_write + position > buff_sz) {
-						/*realloc*/
-						buff_sz = buff_sz + bytes_num_to_write + buff_sz / 2;
-						buffer = realloc(buffer, buff_sz);
-					}
-
-					uint8_t* place_to_wr = (uint8_t*)buffer + position;
-					if (col_header->data_type == STRING) {
-						((struct String_Metadata*)place_to_wr)->hash = current_row->new_value.value.db_string.hash;
-						((struct String_Metadata*)place_to_wr)->length = current_row->new_value.value.db_string.length;
-						memcpy(place_to_wr + sizeof(struct String_Metadata), current_row->new_value.value.db_string.value, current_row->new_value.value.db_string.length + 1); // + "\0"
-					}
-					if (col_header->data_type == INT) {
-						*((int32_t*)place_to_wr) = current_row->new_value.value.db_integer;
-
-					}
-					if (col_header->data_type == FLOAT) {
-						*((float*)place_to_wr) = current_row->new_value.value.db_float;
-
-					}
-					if (col_header->data_type == BOOL) {
-						*((enum Boolean*)place_to_wr) = current_row->new_value.value.db_boolean;
-
-					}
-
-
-					position += bytes_num_to_write;
-					break;
-				}
-			}
-			curr_column_metadata = (void*)((uint8_t*)curr_column_metadata + sizeof(struct Column_Header) + (col_header->column_name_metadata).length + 1);
-		}
-		if (found == 0) {
-			printf("column with name %s DOESNT EXIST in table\n", current_row->column_name.value);
-			/*error*/
+	void* curr_column_metadata = (void*)((uint8_t*)tab_metadata_buffer + sizeof(struct Table_Header) + tab_header->table_name_metadata.length + 1);
+	
+	for (uint32_t i = 0; i < tab_header->columns_number; i++) {
+		
+		if (current_row  == NULL) {
+			printf("INVALID COL SEQUENCE 1\n");
 			free(buffer);
 			return NULL;
 		}
+		struct String col_name = current_row->column_name;
+		struct Column_Header* col_header = (struct Column_Header*)curr_column_metadata;
+		/*CURRENT NODE VALIDATION*/
+		
+		if (col_header->column_name_metadata.hash != col_name.hash) {
+			printf("INVALID COL SEQUENCE 2\n");
+			free(buffer);
+			return NULL;
+		}
+		char* current_schema_col_name = (char*)curr_column_metadata + sizeof(struct Column_Header);
+		if (strcmp(current_schema_col_name, col_name.value) != 0) {
+			printf("INVALID COL SEQUENCE 3\n");
+			free(buffer);
+			return NULL;
+		}
+		if (col_header->data_type != current_row->new_value.data_type) {
+			printf("INVALID DATA TYPE!\n");
+			free(buffer);
+			return NULL;
+		}
+		/*BUFFER WRITING*/
+		uint32_t bytes_num_to_write;
+		if (col_header->data_type == STRING) {
+			bytes_num_to_write = sizeof(struct String_Metadata) + current_row->new_value.value.db_string.length + 1;
 
+		}
+		if (col_header->data_type == INT) {
+			bytes_num_to_write = sizeof(int32_t);
+
+		}
+		if (col_header->data_type == FLOAT) {
+			bytes_num_to_write = sizeof(float);
+
+		}
+		if (col_header->data_type == BOOL) {
+			bytes_num_to_write = sizeof(enum Boolean);
+
+		}
+
+		if (bytes_num_to_write + position > buff_sz) {
+			/*realloc*/
+			buff_sz = buff_sz + bytes_num_to_write + buff_sz / 2;
+			buffer = realloc(buffer, buff_sz);
+		}
+
+		uint8_t* place_to_wr = (uint8_t*)buffer + position;
+		if (col_header->data_type == STRING) {
+			((struct String_Metadata*)place_to_wr)->hash = current_row->new_value.value.db_string.hash;
+			((struct String_Metadata*)place_to_wr)->length = current_row->new_value.value.db_string.length;
+			memcpy(place_to_wr + sizeof(struct String_Metadata), current_row->new_value.value.db_string.value, current_row->new_value.value.db_string.length + 1); // + "\0"
+		}
+		if (col_header->data_type == INT) {
+			*((int32_t*)place_to_wr) = current_row->new_value.value.db_integer;
+
+		}
+		if (col_header->data_type == FLOAT) {
+			*((float*)place_to_wr) = current_row->new_value.value.db_float;
+
+		}
+		if (col_header->data_type == BOOL) {
+			*((enum Boolean*)place_to_wr) = current_row->new_value.value.db_boolean;
+
+		}
+
+		position += bytes_num_to_write;
+		curr_column_metadata = (void*)((uint8_t*)curr_column_metadata + sizeof(struct Column_Header) + (col_header->column_name_metadata).length + 1);
 		current_row = current_row->next_node;
 	}
-	if (found_cols_num != tab_header->columns_number) {
-		printf("INVALID number of columns!");
-		/*error*/
+	if (current_row != NULL) {
+		printf("EXTRA COLUMNS\n");
 		free(buffer);
 		return NULL;
 	}

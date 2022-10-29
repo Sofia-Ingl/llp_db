@@ -16,10 +16,10 @@ int main() {
 
 	table_create(fh, "tab33", schema);
 
-	table_delete(fh, "tab11");
+	//table_delete(fh, "tab11");
 	test_func(fh);
-	table_delete(fh, "tab22");
-	test_func(fh);
+	//table_delete(fh, "tab22");
+	//test_func(fh);
 	char c = getchar();
 	return 0;
 }
