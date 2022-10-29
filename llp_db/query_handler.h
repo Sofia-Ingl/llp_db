@@ -14,4 +14,6 @@ int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum 
 
 int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table_Schema schema);
 
+int8_t table_delete(struct File_Handle* f_handle, char* table_name);
+
 #endif

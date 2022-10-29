@@ -71,3 +71,8 @@ struct File_Handle* file_open_or_create(char* filename) {
 	// errors handle
 	return file_handle;
 }
+
+int8_t table_delete(struct File_Handle* f_handle, char* table_name) {
+	struct String hashed_tab_name = inner_string_create(table_name);
+	delete_table(f_handle, hashed_tab_name);
+}

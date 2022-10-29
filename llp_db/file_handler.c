@@ -155,20 +155,22 @@ struct Table_Handle find_table(struct File_Handle* f_handle, struct String table
 		uint32_t right_bound_table_header_offset = current_table_header_offset + sizeof(struct Table_Header);
 
 		if ((buffer_left_offset < current_table_header_offset) && (right_bound_table_header_offset < buffer_right_offset)) {
+			printf("BUFFER\n");
 			/*current th already inside buffer => dont have to read data from files*/
 			uint32_t new_table_header_buffer_position = current_table_header_offset - buffer_left_offset;
 			table_header = (struct Table_Header*)((uint8_t*)buffer + new_table_header_buffer_position);
 
 		}
 		else {
+			printf("BUFFER MISS\n");
 			uint32_t read_result = read_from_db_file(f_handle, current_table_header_offset, DB_MAX_TABLE_METADATA_SIZE, buffer);
 			buffer_left_offset = current_table_header_offset;
 			buffer_right_offset = current_table_header_offset + read_result;
 			table_header = (struct Table_Header*)buffer;
 		}
-
+		printf("tab NAME: %s\n", (char*)((uint8_t*)table_header + sizeof(struct Table_Header)));
 		if (table_header->table_name_metadata.hash == table_name.hash) {
-			char* current_table_name = (char*)buffer + sizeof(table_header);
+			char* current_table_name = (uint8_t*)table_header + sizeof(struct Table_Header);
 			if (strcmp(current_table_name, table_name.value) == 0) {
 				free(buffer);
 				return (struct Table_Handle) {
@@ -440,7 +442,7 @@ void* transform_table_metadata_into_db_format(struct String table_name, struct T
 
 }
 
-/*ADD BUFFER OPTIMIZATION*/
+
 uint32_t add_table_to_f_header_and_update_list(struct File_Handle * f_handle, uint32_t table_metadata_offset) {
 	printf("add_table_to_f_header_and_update_list\n");
 	struct File_Header file_header;
@@ -490,11 +492,19 @@ uint32_t add_table_to_f_header_and_update_list(struct File_Handle * f_handle, ui
 	return 0;
 }
 
-void clear_row_list(struct File_Handle* f_handle, uint32_t first_row_offset) {
+struct Gap_List {
+	uint32_t first_gap_offset;
+	uint32_t last_gap_offset;
+};
+
+/*ADD BUFFER OPTIMISATION FOR READ AND WRITE*/
+struct Gap_List clear_row_list(struct File_Handle* f_handle, uint32_t first_row_offset) {
+	printf("clear_row_list\n");
 	uint32_t curr_row_offset = first_row_offset;
 	uint32_t first_gap_offset = first_row_offset;
 	uint32_t last_gap_offset = -1;
 	while (curr_row_offset != -1) {
+		
 		struct Row_Header row_header;
 		read_from_db_file(f_handle, curr_row_offset, sizeof(struct Row_Header), &row_header);
 		void* buffer = malloc(row_header.row_size);
@@ -510,13 +520,20 @@ void clear_row_list(struct File_Handle* f_handle, uint32_t first_row_offset) {
 		free(buffer);
 
 		curr_row_offset = row_header.next_row_header_offset;
+		printf("another row is cleared\n");
 	}
+
+	return (struct Gap_List) {
+		.first_gap_offset = first_gap_offset,
+		.last_gap_offset = last_gap_offset
+	};
 }
 
-/*ADD BUFFER OPTIMIZATION*/
+
 int32_t create_table(struct File_Handle* f_handle, struct String table_name, struct Table_Schema schema) {
-	printf("create_table\n");
+	printf("create_table %s\n", table_name.value);
 	if (find_table(f_handle, table_name).exists == 1) {
+		printf("tab ALREADY exists!\n");
 		return -1;
 	}
 	void* table_metadata = transform_table_metadata_into_db_format( table_name, schema);
@@ -557,15 +574,70 @@ int32_t create_table(struct File_Handle* f_handle, struct String table_name, str
 int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 	printf("delete_table\n");
 	struct Table_Handle t_handle = find_table(f_handle, table_name);
-	if (t_handle.exists == 1) {
+	if (t_handle.exists == 0) {
 		printf("tab doesnt exist\n");
 		return -1;
 	}
 
-	uint32_t curr_row_offset = t_handle.table_header.first_row_offset;
+	struct File_Header file_header;
+	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+	if (read_res < sizeof(struct File_Header)) {
+		return -1;
+	}
 
-	while (curr_row_offset != -1) {
+	/*clear rows*/
+	struct Gap_List new_gap_list = clear_row_list(f_handle, t_handle.table_header.first_row_offset);
+
+	printf("new gap list: first %d; last %d\n", new_gap_list.first_gap_offset, new_gap_list.last_gap_offset);
+
+	/*clear metadata*/
+	void* buffer = malloc(t_handle.table_header.table_metadata_size);
+	memset(buffer, 0, t_handle.table_header.table_metadata_size);
+	printf("t_handle.table_header.table_metadata_size %d\n", t_handle.table_header.table_metadata_size);
+	
+	struct Gap_Header* g_header = (struct Gap_Header*)buffer;
+	g_header->gap_size = t_handle.table_header.table_metadata_size;
+	g_header->next_gap_header_offset = new_gap_list.first_gap_offset;
+	g_header->prev_gap_header_offset = -1;
+
+	struct Gap_Header first_new_gap_header;
+	read_from_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+	first_new_gap_header.prev_gap_header_offset = t_handle.table_metadata_offset;
+	write_into_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+
+	/*first gap in new gap list is created from table metadata*/
+	new_gap_list.first_gap_offset = t_handle.table_metadata_offset;
+	if (new_gap_list.last_gap_offset == -1) {
+		printf("no rows were in table\n");
+		new_gap_list.last_gap_offset = t_handle.table_metadata_offset;
+	}
+	
+
+	if (file_header.first_gap_offset == -1) {
+		
+		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+
+		file_header.first_gap_offset = new_gap_list.first_gap_offset;
+		file_header.last_gap_offset = new_gap_list.last_gap_offset;
+		
+	}
+	else {
+		/*maintain linked list*/
+		/*lenghten ll*/
+		struct Gap_Header last_gap_header;
+		read_from_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+		last_gap_header.next_gap_header_offset = new_gap_list.first_gap_offset;
+		write_into_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+
+		g_header->prev_gap_header_offset = file_header.last_gap_offset;
+		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+
+		file_header.last_gap_offset = new_gap_list.last_gap_offset;
 
 	}
 	
+	
+	free(buffer);
+	write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+	return 0;
 }

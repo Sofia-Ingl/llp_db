@@ -13,6 +13,10 @@ int main() {
 
 	table_create(fh, "tab2", schema);
 
+	table_create(fh, "tab2", schema);
+
+	table_delete(fh, "tab1");
+
 	char c = getchar();
 	return 0;
 }
