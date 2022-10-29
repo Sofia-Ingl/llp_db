@@ -34,5 +34,8 @@
     <ClInclude Include="query_handler.h">
       <Filter>ram</Filter>
     </ClInclude>
+    <ClInclude Include="request_structs.h">
+      <Filter>ram</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

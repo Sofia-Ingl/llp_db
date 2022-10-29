@@ -21,4 +21,23 @@ enum Boolean {
 	TRUE
 };
 
+
+union Data {
+	struct String db_string;
+	enum Boolean db_boolean;
+	int32_t db_integer;
+	float db_float;
+};
+
+struct Schema_Internals_Value {
+	enum DB_Data_Type data_type;
+	union Data value;
+};
+
+struct Data_Row_Node {
+	struct String column_name;
+	struct Schema_Internals_Value new_value;
+	struct Data_Row_Node* next_node;
+};
+
 #endif

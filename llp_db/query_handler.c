@@ -61,6 +61,45 @@ int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum 
 	return 0;
 }
 
+
+struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type data_type, void* value_pointer) {
+	struct String hashed_column_name = inner_string_create(column_name);
+	union Data data;
+	if (data_type == INT) {
+		data.db_integer = *((int32_t*)value_pointer);
+	}
+	if (data_type == FLOAT) {
+		data.db_float = *((float*)value_pointer);
+	}
+	if (data_type == BOOL) {
+		data.db_float = *((enum Boolean*)value_pointer);
+	}
+	if (data_type == STRING) { // мб лучше копировать строку?????? потенциальная утечка памяти
+		char* string = *((char**)value_pointer);
+		struct String hashed_string = inner_string_create(string);
+		data.db_string = hashed_string;
+		//char* string = ((char*)value_pointer);
+		//// copy to buffer
+		//struct String hashed_string = inner_string_create(string);
+		//data.db_string = hashed_string; 
+	}
+
+	struct Schema_Internals_Value schema_internal_value = (struct Schema_Internals_Value){
+		.data_type = data_type,
+		.value = data
+	};
+	return (struct Data_Row_Node) {
+		.column_name = hashed_column_name,
+			.new_value = schema_internal_value,
+			.next_node = NULL
+	};
+}
+
+
+
+
+
+
 int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table_Schema schema) {
 	struct String hashed_tab_name = inner_string_create(table_name);
 	create_table(f_handle, hashed_tab_name, schema);
@@ -75,4 +114,20 @@ struct File_Handle* file_open_or_create(char* filename) {
 int8_t table_delete(struct File_Handle* f_handle, char* table_name) {
 	struct String hashed_tab_name = inner_string_create(table_name);
 	delete_table(f_handle, hashed_tab_name);
+}
+
+int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command) {
+	insert_row(f_handle, insert_command.table_name, insert_command.new_data);
+}
+
+
+
+void test_func(struct File_Handle* f_handle) {
+	struct String hashed_table_name = inner_string_create("tab22");
+	char* s1 = "Lis";
+	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
+	char* s2 = "Lisuudhue";
+	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name, &rn);
 }
