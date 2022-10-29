@@ -506,7 +506,6 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 	if (read_res < sizeof(struct File_Header)) {
 		return -1;
 	}
-
 	// consistency of tab metadata list
 	if (file_header.first_table_offset == t_handle.table_metadata_offset) {
 		file_header.first_table_offset = t_handle.table_header.next_table_header_offset;
@@ -619,9 +618,12 @@ void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_R
 		for (uint32_t i = 0; i < tab_header->columns_number; i++) {
 
 			struct Column_Header* col_header = (struct Column_Header*)curr_column_metadata;
+			printf("cur col %s\n", (uint8_t*)curr_column_metadata + sizeof(struct Column_Header));
 			if (column_is_present[i] == 1) {
 				// skip
+				printf("skip\n");
 				curr_column_metadata = (void*) ((uint8_t*)curr_column_metadata + sizeof(struct Column_Header) + (col_header->column_name_metadata).length + 1);
+				continue;
 			}
 			if (col_header->column_name_metadata.hash == col_name.hash) {
 				char* current_schema_col_name = (char*)curr_column_metadata + sizeof(struct Column_Header);
@@ -687,6 +689,7 @@ void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_R
 					break;
 				}
 			}
+			curr_column_metadata = (void*)((uint8_t*)curr_column_metadata + sizeof(struct Column_Header) + (col_header->column_name_metadata).length + 1);
 		}
 		if (found == 0) {
 			printf("column with name %s DOESNT EXIST in table\n", current_row->column_name.value);

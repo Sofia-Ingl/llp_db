@@ -125,9 +125,9 @@ int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command
 void test_func(struct File_Handle* f_handle) {
 	struct String hashed_table_name = inner_string_create("tab22");
 	char* s1 = "Lis";
-	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
+	struct Data_Row_Node rn = create_data_row_node("col2", STRING, &s1);
 	char* s2 = "Lisuudhue";
-	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
+	struct Data_Row_Node rn2 = create_data_row_node("col1", STRING, &s2);
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name, &rn);
 }
