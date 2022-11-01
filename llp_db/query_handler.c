@@ -96,6 +96,37 @@ struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type d
 }
 
 
+struct Condition create_simple_condition(char* column_name, struct Schema_Internals_Value val, enum Condition_Relation relation) {
+	
+	struct Simple_Condition simp_cond = {
+		.column_name = inner_string_create(column_name),
+		.relation = relation,
+		.right_part = val
+	};
+	union Condition_Union cond_union = {
+		.simple_condition = simp_cond
+	};
+	return (struct Condition) {
+		.is_simple = 1,
+		.condition = cond_union
+	};
+}
+
+struct Condition create_complex_condition(struct Condition* left, struct Condition* right, enum Condition_Chain_Relation relation) {
+
+	struct Complex_Condition complex_cond = (struct Complex_Condition){
+		.left = left,
+		.relation = relation,
+		.right = right
+	};
+	union Condition_Union cond_union = {
+		.complex_condition = complex_cond
+	};
+	return (struct Condition) {
+		.is_simple = 0,
+		.condition = cond_union
+	};
+}
 
 
 
@@ -123,11 +154,40 @@ int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command
 
 
 void test_func(struct File_Handle* f_handle) {
-	struct String hashed_table_name = inner_string_create("tab22");
+	struct String hashed_table_name = inner_string_create("tab2");
 	char* s1 = "Lis";
 	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
 	char* s2 = "Lisuudhue";
 	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name, &rn);
+
+	//struct String hashed_table_name = inner_string_create("tab2");
+	s1 = "kis";
+	rn = create_data_row_node("col1", STRING, &s1);
+	s2 = "Lisuudhue";
+	rn2 = create_data_row_node("col2", STRING, &s2);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name, &rn);
+
+	//struct String hashed_table_name = inner_string_create("tab2");
+	s1 = "kis";
+	rn = create_data_row_node("col1", STRING, &s1);
+	s2 = "Kisuudhue";
+	rn2 = create_data_row_node("col2", STRING, &s2);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name, &rn);
+
+	s2 = "Lisuudhue";
+	//(union Data) {
+	//	.db_string = inner_string_create(s2)
+	//};
+	struct Schema_Internals_Value val = (struct Schema_Internals_Value){
+		.data_type = STRING,
+		.value = (union Data) {
+			.db_string = inner_string_create(s2)
+		}
+	};
+	struct Condition con = create_simple_condition("col2", val, EQUALS);
+	delete_rows(f_handle, hashed_table_name, &con);
 }

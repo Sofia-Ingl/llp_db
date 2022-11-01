@@ -14,92 +14,63 @@ enum Request_Type {
 
 /*RECURSIVE CONDITION*/
 
-enum Condition_Relation {
-	EQUALS,
-	LESS,
-	BIGGER,
-	LESS_OR_EQUALS,
-	BIGGER_OR_EQUALS,
-	NOT_EQUALS,
-	IN,
-	NOT_IN
-};
-
-enum Condition_Chain_Relation {
-	AND,
-	OR
-};
+//enum Condition_Relation {
+//	EQUALS,
+//	LESS,
+//	BIGGER,
+//	LESS_OR_EQUALS,
+//	BIGGER_OR_EQUALS,
+//	NOT_EQUALS,
+//	IN,
+//	NOT_IN
+//};
+//
+//enum Condition_Chain_Relation {
+//	AND,
+//	OR
+//};
 
 struct Select;
 
 
-////  = (select ...) или (5 <- простое значение)
-//union Simple_Condition_Right_Part_Union {
-//	struct Select* select_statement;
-//	struct Schema_Internals_Value simple_value;
+//struct Extended_Column_Name {
+//	struct String column_name;
+//	struct String table_name;
 //};
-
-//struct Simple_Condition_Right_Part {
-//	int8_t no_select;
-//	union Simple_Condition_Right_Part_Union right_part_value;
+//
+//union Column_Name_Union {
+//	struct Extended_Column_Name extended_column_name;
+//	struct String simple_column_name;
 //};
-
-/*
-struct Condition {
-	struct DB_String column_name;
-	//enum DB_Data_Type data_type;
-	enum Condition_Relation relation;
-	struct Condition_Right_Part right_part;
-};
-*/
-
-
-struct Extended_Column_Name {
-	struct String column_name;
-	struct String table_name;
-};
-
-union Column_Name_Union {
-	struct Extended_Column_Name extended_column_name;
-	struct String simple_column_name;
-};
-
-struct Column_Name {
-	uint8_t is_simple;
-	union Column_Name_Union column_name;
-};
-
+//
+//struct Column_Name {
+//	uint8_t is_simple;
+//	union Column_Name_Union column_name;
+//};
+//
 //struct Simple_Condition {
-//	//struct DB_String column_name;
-//	//enum DB_Data_Type data_type;
 //	struct Column_Name column_name;
 //	enum Condition_Relation relation;
-//	struct Simple_Condition_Right_Part right_part;
+//	struct Schema_Internals_Value right_part;
 //};
-
-struct Simple_Condition {
-	struct Column_Name column_name;
-	enum Condition_Relation relation;
-	struct Schema_Internals_Value right_part;
-};
-
-struct Condition;
-
-struct Complex_Condition {
-	struct Condition* left;
-	struct Condition* right;
-	enum Condition_Chain_Relation relation;
-};
-
-union Condition_Union {
-	struct Complex_Condition complex_condition;
-	struct Simple_Condition simple_condition;
-};
-
-struct Condition {
-	int8_t is_simple;
-	union Condition_Union condition;
-};
+//
+//struct Condition;
+//
+//struct Complex_Condition {
+//	struct Condition* left;
+//	struct Condition* right;
+//	enum Condition_Chain_Relation relation;
+//};
+//
+//union Condition_Union {
+//	struct Complex_Condition complex_condition;
+//	struct Simple_Condition simple_condition;
+//};
+//
+//struct Condition {
+//	uint8_t is_simple;
+//	union Condition_Union condition;
+//};
 
 /*DATA ROW for insert and update*/
 

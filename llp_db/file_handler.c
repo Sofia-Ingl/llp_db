@@ -449,7 +449,7 @@ struct Gap_List clear_row_list(struct File_Handle* f_handle, uint32_t first_row_
 	};
 }
 
-/*GAP FILLING POLICY*/
+/*END INSERTION POLICY*/
 int32_t create_table(struct File_Handle* f_handle, struct String table_name, struct Table_Schema schema) {
 	printf("create_table %s\n", table_name.value);
 	if (find_table(f_handle, table_name).exists == 1) {
@@ -460,27 +460,12 @@ int32_t create_table(struct File_Handle* f_handle, struct String table_name, str
 	printf("%p tab metadata arr\n", table_metadata);
 	uint32_t table_metadata_sz = ((struct Table_Header*)table_metadata)->table_metadata_size;
 
-	uint32_t free_space_ptr = find_free_space(f_handle, table_metadata_sz);
-	if (free_space_ptr == -1) {
-		// write to the end of file
-		printf("wr to f end\n");
-		free_space_ptr = find_file_end(f_handle);
-		printf("%x FILE ENDDDDDDDDDDD\n", free_space_ptr);
-		uint32_t write_res = write_into_db_file(f_handle, free_space_ptr, table_metadata_sz, table_metadata);
-		printf("write res: %d\n", write_res);
-		if (write_res == -1) {
-			/*error*/
-			return -1;
-		}
-	}
-	else {
-		// write to free space
-		printf("wr to free space\n");
-		uint32_t write_res = write_into_db_file(f_handle, free_space_ptr, table_metadata_sz, table_metadata);
-		if (write_res == -1) {
-			/*error*/
-			return -1;
-		}
+	uint32_t free_space_ptr = find_file_end(f_handle);
+	uint32_t write_res = write_into_db_file(f_handle, free_space_ptr, table_metadata_sz, table_metadata);
+	printf("write res: %d\n", write_res);
+	if (write_res == -1) {
+		/*error*/
+		return -1;
 	}
 	uint32_t metadata_upd_res = add_table_to_f_header_and_update_list(f_handle, free_space_ptr);
 	if (metadata_upd_res == -1) {
@@ -571,7 +556,7 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 		
 	}
 	else {
-		/*maintain linked list*/
+		/*maintain gap linked list*/
 		/*lenghten ll*/
 		struct Gap_Header last_gap_header;
 		read_from_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
@@ -741,4 +726,399 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 
 	free(table_metadata_buffer);
 	free(row_data);
+}
+
+
+uint8_t process_condition_relation(void* value_pos, struct Schema_Internals_Value target_value, enum Condition_Relation relation) {
+	if (target_value.data_type == INT) {
+		int32_t curr_row_val = *((int32_t*)value_pos);
+		if (relation == EQUALS) {
+			return (curr_row_val == target_value.value.db_integer) ? 1 : 0;
+		}
+		if (relation == NOT_EQUALS) {
+			return (curr_row_val != target_value.value.db_integer) ? 1 : 0;
+		}
+		if (relation == LESS) {
+			return (curr_row_val < target_value.value.db_integer) ? 1 : 0;
+		}
+		if (relation == BIGGER) {
+			return (curr_row_val > target_value.value.db_integer) ? 1 : 0;
+		}
+	}
+
+	if (target_value.data_type == FLOAT) {
+		float curr_row_val = *((float*)value_pos);
+		if (relation == EQUALS) {
+			return (curr_row_val == target_value.value.db_float) ? 1 : 0;
+		}
+		if (relation == NOT_EQUALS) {
+			return (curr_row_val != target_value.value.db_float) ? 1 : 0;
+		}
+		if (relation == LESS) {
+			return (curr_row_val < target_value.value.db_float) ? 1 : 0;
+		}
+		if (relation == BIGGER) {
+			return (curr_row_val > target_value.value.db_float) ? 1 : 0;
+		}
+	}
+
+	if (target_value.data_type == BOOL) {
+		enum Boolean curr_row_val = *((enum Boolean*)value_pos);
+		if (relation == EQUALS) {
+			return (curr_row_val == target_value.value.db_boolean) ? 1 : 0;
+		}
+		if (relation == NOT_EQUALS) {
+			return (curr_row_val != target_value.value.db_boolean) ? 1 : 0;
+		}
+	}
+
+	if (target_value.data_type == STRING) {
+		struct String_Metadata* str_metadata = (struct String_Metadata*)value_pos;
+		char* curr_row_str = (char*)value_pos + sizeof(struct String_Metadata);
+		if (relation == EQUALS) {	
+			return ((str_metadata->hash == target_value.value.db_string.hash) && (strcmp(curr_row_str, target_value.value.db_string.value) == 0)) ? 1 : 0;
+		}
+		if (relation == NOT_EQUALS) {
+			return ((str_metadata->hash != target_value.value.db_string.hash) && (strcmp(curr_row_str, target_value.value.db_string.value) != 0)) ? 1 : 0;
+		}
+		if (relation == LESS) {
+			return (strcmp(curr_row_str, target_value.value.db_string.value) < 0) ? 1 : 0;
+		}
+		if (relation == BIGGER) {
+			return (strcmp(curr_row_str, target_value.value.db_string.value) > 0) ? 1 : 0;
+		}
+	}
+	printf("ERROR: _");
+	return -1;
+}
+
+uint8_t check_simple_condition(void* table_metadata_buffer, void* row_buffer, struct Simple_Condition condition) {
+
+	struct Table_Header* t_header = (struct Table_Header*)table_metadata_buffer;
+	struct Row_Header* r_header = (struct Row_Header*)(row_buffer);
+
+	struct String target_column = condition.column_name;
+
+	uint32_t current_metadata_pos = sizeof(struct Table_Header) + t_header->table_name_metadata.length + 1;
+	uint32_t current_data_pos = sizeof(struct Row_Header);
+
+	for (uint32_t i = 0; i < t_header->columns_number; i++)
+	{
+		struct Column_Header* c_header = (struct Column_Header*)((uint8_t*)table_metadata_buffer +current_metadata_pos);
+		printf("currrrrr col %s\n", (char*)c_header + sizeof(struct Column_Header));
+		if (c_header->column_name_metadata.hash == target_column.hash) {
+			char* curr_col_name = (char*)c_header + sizeof(struct Column_Header);
+			if (strcmp(curr_col_name, target_column.value) == 0) {
+
+				//check data type
+				
+				if (c_header->data_type != condition.right_part.data_type) {
+					printf("INVAID DATA TYPE in condition\n");
+					return -1;
+				}
+
+				// cmp value
+				return process_condition_relation((uint8_t*)row_buffer + current_data_pos, condition.right_part, condition.relation);
+
+			}
+		}
+		current_metadata_pos = current_metadata_pos + sizeof(struct Column_Header) + c_header->column_name_metadata.length + 1;
+		uint32_t data_sz;
+		if (c_header->data_type == INT) { data_sz = sizeof(int32_t); }
+		if (c_header->data_type == FLOAT) { data_sz = sizeof(float); }
+		if (c_header->data_type == BOOL) { data_sz = sizeof(enum Boolean); }
+		if (c_header->data_type == STRING) { 
+			struct String_Metadata* str_metadata = (struct String_Metadata*)((uint8_t*)row_buffer + current_data_pos);
+			data_sz = sizeof(struct String_Metadata) + str_metadata->length + 1;
+		}
+
+		current_data_pos = current_data_pos + data_sz;
+	}
+
+	printf("INVAID TARGET COLUMN NAME in condition: %s\n", target_column.value);
+	return -1;
+
+}
+
+uint8_t check_complex_condition(uint8_t left_res, uint8_t right_res, enum Condition_Chain_Relation operation) {
+
+	if (operation == AND) {
+		return left_res && right_res;
+	}
+
+	if (operation == OR) {
+		return left_res || right_res;
+	}
+
+	return -1;
+
+}
+
+uint8_t apply_filter(void* table_metadata_buffer, void* row_buffer, struct Condition* condition) {
+	
+	printf("\n");
+
+	if (condition == NULL) {
+		return 1;
+	}
+
+	if (condition->is_simple == 1) {
+		return check_simple_condition(table_metadata_buffer, row_buffer, condition->condition.simple_condition);
+	}
+	else {
+		uint8_t left_res = apply_filter(table_metadata_buffer, row_buffer, condition->condition.complex_condition.left);
+		uint8_t right_res = apply_filter(table_metadata_buffer, row_buffer, condition->condition.complex_condition.right);
+		return check_complex_condition(left_res, right_res, condition->condition.complex_condition.relation);
+	}
+
+}
+
+
+void flush_buffer(struct File_Handle* f_handle, uint32_t buffer_left_offset, uint32_t buffer_right_offset, void* buffer) {
+	
+	if (buffer_right_offset - buffer_left_offset > 0) {
+		write_into_db_file(f_handle, buffer_left_offset, buffer_right_offset - buffer_left_offset, buffer);
+	}
+}
+
+void* fetch_row_into_buffer(struct File_Handle* f_handle,
+							void* buffer, 
+							uint32_t current_row_offset,
+							uint32_t* buff_sz, 
+							uint32_t* buffer_left_offset, 
+							uint32_t* buffer_right_offset,
+							uint32_t* row_header_pos,
+							uint32_t* row_sz) {
+	struct Row_Header* r_header;
+	uint32_t right_bound_row_header_offset = current_row_offset + sizeof(struct Row_Header);
+	if ((*buffer_left_offset < current_row_offset) && (right_bound_row_header_offset < *buffer_right_offset)) {
+		// ROW HEADER IN BUFFER
+		*row_header_pos = current_row_offset - *buffer_left_offset;
+		r_header = (struct Row_Header*)((uint8_t*)buffer + *row_header_pos);
+
+		*row_sz = r_header->row_size;
+		if ((current_row_offset + *row_sz) > *buffer_right_offset) {
+
+			// not the whole row in array
+			// should rewrite buffer data
+			printf("not the whole row in array\n");
+			flush_buffer(f_handle, *buffer_left_offset, *buffer_right_offset, buffer);
+
+			if (*row_sz > *buff_sz) {
+				*buff_sz = *row_sz;
+				buffer = realloc(buffer, *buff_sz);
+			}
+
+			uint32_t read_res = read_from_db_file(f_handle, current_row_offset, *buff_sz, buffer);
+			*buffer_left_offset = current_row_offset;
+			*buffer_right_offset = current_row_offset + read_res;
+			r_header = (struct Row_Header*)(buffer);
+			*row_header_pos = 0;
+		}
+
+	}
+	else {
+		// ROW HEADER NOT IN BUFFER
+		printf("ROW HEADER NOT IN BUFFER\n");
+		flush_buffer(f_handle, *buffer_left_offset, *buffer_right_offset, buffer);
+		uint32_t read_res = read_from_db_file(f_handle, current_row_offset, *buff_sz, buffer);
+
+		r_header = (struct Row_Header*)(buffer);
+		*row_sz = r_header->row_size;
+		if (*row_sz > *buff_sz) {
+			/*IF ROW IS BIGGER THAN BUFFER*/
+			*buff_sz = *row_sz;
+			buffer = realloc(buffer, *buff_sz);
+			read_res = read_from_db_file(f_handle, current_row_offset, *buff_sz, buffer);
+		}
+
+		*buffer_left_offset = current_row_offset;
+		*buffer_right_offset = current_row_offset + read_res;
+		*row_header_pos = 0;
+	}
+	return buffer;
+}
+
+
+int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition) {
+	
+
+	struct Table_Handle tab_handle = find_table(f_handle, table_name);
+	if (tab_handle.exists == 0) {
+		printf("tab DOESNT exists, cannot delete from!\n");
+		return -1;
+	}
+	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
+	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
+
+	void* buffer = malloc(DB_MAX_ROW_SIZE);
+	uint32_t buff_sz = DB_MAX_ROW_SIZE;
+	uint32_t buffer_left_offset = 0;
+	uint32_t buffer_right_offset = 0;
+
+	uint32_t first_gap_offset = -1;
+	uint32_t last_gap_offset = -1;
+
+	uint32_t first_preserved_row_offset = -1;
+	uint32_t last_preserved_row_offset = -1;
+
+	uint32_t current_row_offset = tab_handle.table_header.first_row_offset;
+
+	while (current_row_offset != -1) {
+
+		/*FETCH CURRENT ROW*/
+		
+		
+		uint32_t row_sz;
+		uint32_t row_header_pos;
+		
+		buffer = fetch_row_into_buffer(f_handle,
+			buffer,
+			current_row_offset,
+			&buff_sz,
+			&buffer_left_offset,
+			&buffer_right_offset,
+			&row_header_pos,
+			&row_sz);
+		
+		struct Row_Header* r_header = (struct Row_Header*)((uint8_t*)buffer + row_header_pos);
+		/*row is in buffer on row_header_pos position*/
+
+		/*APPLY FILTER*/
+		uint8_t row_suitable = apply_filter(table_metadata_buffer, (uint8_t*)buffer + row_header_pos, condition);
+
+		uint32_t next_row_offset = r_header->next_row_header_offset;
+
+		if (!row_suitable) {
+			/*DO NOT DELETE*/
+			r_header->prev_row_header_offset = last_preserved_row_offset;
+			if (first_preserved_row_offset == -1) {
+				first_preserved_row_offset = current_row_offset;
+			}
+			else {
+				
+				if (last_preserved_row_offset != r_header->prev_row_header_offset) {
+					// should fetch last row and set its next = current
+					uint32_t last_preserved_row_header_pos;
+					uint32_t last_preserved_row_sz;
+					buffer = fetch_row_into_buffer(f_handle,
+						buffer,
+						last_preserved_row_offset,
+						&buff_sz,
+						&buffer_left_offset,
+						&buffer_right_offset,
+						&last_preserved_row_header_pos,
+						&last_preserved_row_sz);
+					struct Row_Header* last_preserved_r_header = (struct Row_Header*)((uint8_t*)buffer + last_preserved_row_header_pos);
+					last_preserved_r_header->next_row_header_offset = current_row_offset;
+				}
+				
+
+			}
+			last_preserved_row_offset = current_row_offset;
+			
+		}
+		else {
+			/*DELETE ROW*/
+
+			uint32_t next_potential_gap_offset = r_header->next_row_header_offset;
+			uint32_t prev_row_header_offset = r_header->next_row_header_offset;
+
+			memset((uint8_t*)buffer + row_header_pos, 0, row_sz);
+
+			
+			struct Gap_Header* g_header = (struct Gap_Header*)((uint8_t*)buffer + row_header_pos);
+			g_header->gap_size = row_sz;
+			g_header->prev_gap_header_offset = last_gap_offset;
+			g_header->next_gap_header_offset = next_potential_gap_offset;
+
+
+			if (first_gap_offset == -1) {
+				// first deleted row
+				first_gap_offset = current_row_offset;
+			}
+			else {
+				if (last_gap_offset != prev_row_header_offset) {
+					// should fetch last gap and set its next gap = current
+					uint32_t last_gap_header_pos;
+					uint32_t last_gap_sz;
+					/*WE CAN do that because Row and Gap headers are same*/
+					buffer = fetch_row_into_buffer(f_handle,
+						buffer,
+						last_gap_offset,
+						&buff_sz,
+						&buffer_left_offset,
+						&buffer_right_offset,
+						&last_gap_header_pos,
+						&last_gap_sz);
+					struct Gap_Header* last_gap_header = (struct Gap_Header*)((uint8_t*)buffer + last_gap_header_pos);
+					last_gap_header->next_gap_header_offset = current_row_offset;
+				}
+			}
+
+			last_gap_offset = current_row_offset;
+			
+
+		}
+		current_row_offset = next_row_offset;
+
+	}
+	flush_buffer(f_handle, buffer_left_offset, buffer_right_offset, buffer);
+
+	/*TABLE ROW LINKED LIST CONSISTENCY*/
+	tab_handle.table_header.first_row_offset = first_preserved_row_offset;
+	tab_handle.table_header.last_row_offset = last_preserved_row_offset;
+	write_into_db_file(f_handle, tab_handle.table_metadata_offset, sizeof(struct Table_Header), &tab_handle.table_header);
+	if (last_preserved_row_offset != -1) {
+		struct Row_Header r_header;
+		read_from_db_file(f_handle, last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
+		if (r_header.next_row_header_offset != -1) {
+			r_header.next_row_header_offset = -1;
+			write_into_db_file(f_handle, last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
+		}
+	}
+	
+
+	/*GAP LINKED LIST CONSISTENCY*/
+
+	if (first_gap_offset != -1) {
+		/*have to change gap list cause of new gaps*/
+		printf("we have deleted rows\n");
+		struct File_Header f_header;
+		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
+		if (f_header.first_gap_offset == -1) {
+			f_header.first_gap_offset = first_gap_offset;
+		}
+		else {
+			/*should fetch prev last gap header from db and set ins next = first gap created from curr table*/
+
+			struct Gap_Header prev_last_g_header;
+			read_from_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
+			prev_last_g_header.next_gap_header_offset = first_gap_offset;
+			write_into_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
+
+			/*should fetch first created gap header and set its prev*/
+			struct Gap_Header first_created_g_header;
+			read_from_db_file(f_handle, first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
+			first_created_g_header.prev_gap_header_offset = f_header.last_gap_offset;
+			write_into_db_file(f_handle, first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
+
+		}
+		f_header.last_gap_offset = last_gap_offset;
+		write_into_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
+
+
+		struct Gap_Header g_header;
+		read_from_db_file(f_handle, last_gap_offset, sizeof(struct Gap_Header), &g_header); // last gap offset != -1
+		if (g_header.next_gap_header_offset != -1) {
+			g_header.next_gap_header_offset = -1;
+			write_into_db_file(f_handle, last_gap_offset, sizeof(struct Gap_Header), &g_header);
+		}
+		
+	}
+
+	
+
+	free(buffer);
+	free(table_metadata_buffer);
 }
