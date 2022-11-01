@@ -186,7 +186,7 @@ struct Table_Handle find_table(struct File_Handle* f_handle, struct String table
 	return not_existing_table_handle();
 }
 
-
+/*POTENTIAL BUG, NEEDS TESTING*/
 uint32_t find_free_space(struct File_Handle* f_handle, uint32_t size) {
 	printf("find_free_space\n");
 	struct File_Header f_header;
@@ -693,18 +693,14 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 		return -1;
 	}
 	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
-	printf("tab metadata sz : %d\n", tab_handle.table_header.table_metadata_size);
 	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
 	
 	void* row_data = transform_data_row_into_db_format(table_metadata_buffer, data_row);
-	printf("here\n");
 	struct Row_Header* row_header = (struct Row_Header*)row_data;
 	int32_t file_end = find_file_end(f_handle);
-	printf("file end::::: %x\n", file_end);
 
 	uint32_t last_row_in_table_offset = tab_handle.table_header.last_row_offset;
 	if (last_row_in_table_offset != -1) {
-		printf("last tb row off %d\n", last_row_in_table_offset);
 		printf("table wasnt empty\n");
 		struct Row_Header last_row_in_table;
 		read_from_db_file(f_handle, last_row_in_table_offset, sizeof(struct Row_Header), &last_row_in_table);
@@ -805,7 +801,6 @@ uint8_t check_simple_condition(void* table_metadata_buffer, void* row_buffer, st
 	for (uint32_t i = 0; i < t_header->columns_number; i++)
 	{
 		struct Column_Header* c_header = (struct Column_Header*)((uint8_t*)table_metadata_buffer +current_metadata_pos);
-		printf("currrrrr col %s\n", (char*)c_header + sizeof(struct Column_Header));
 		if (c_header->column_name_metadata.hash == target_column.hash) {
 			char* curr_col_name = (char*)c_header + sizeof(struct Column_Header);
 			if (strcmp(curr_col_name, target_column.value) == 0) {
@@ -855,8 +850,6 @@ uint8_t check_complex_condition(uint8_t left_res, uint8_t right_res, enum Condit
 }
 
 uint8_t apply_filter(void* table_metadata_buffer, void* row_buffer, struct Condition* condition) {
-	
-	printf("\n");
 
 	if (condition == NULL) {
 		return 1;
