@@ -13,4 +13,6 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 
 int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition);
 
+int32_t update_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, struct Data_Row_Node* new_data);
+
 #endif

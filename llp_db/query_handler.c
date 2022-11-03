@@ -157,7 +157,7 @@ void test_func(struct File_Handle* f_handle) {
 	struct String hashed_table_name = inner_string_create("tab2");
 	char* s1 = "Lis";
 	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
-	char* s2 = "Lisuudhue";
+	char* s2 = "Lisuudhue11111";
 	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name, &rn);
@@ -165,7 +165,7 @@ void test_func(struct File_Handle* f_handle) {
 	//struct String hashed_table_name = inner_string_create("tab2");
 	s1 = "kis";
 	rn = create_data_row_node("col1", STRING, &s1);
-	s2 = "Lisuudhue";
+	s2 = "Lisuudhue11111";
 	rn2 = create_data_row_node("col2", STRING, &s2);
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name, &rn);
@@ -178,7 +178,7 @@ void test_func(struct File_Handle* f_handle) {
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name, &rn);
 
-	s2 = "Lisuudhue";
+	s2 = "Lisuudhue11111";
 	//(union Data) {
 	//	.db_string = inner_string_create(s2)
 	//};
@@ -189,5 +189,11 @@ void test_func(struct File_Handle* f_handle) {
 		}
 	};
 	struct Condition con = create_simple_condition("col2", val, EQUALS);
-	delete_rows(f_handle, hashed_table_name, &con);
+	
+	char* s3 = "i";
+	rn2 = create_data_row_node("col2", STRING, &s3);
+
+	int32_t upd_rs = update_rows(f_handle, hashed_table_name, &con, &rn2);
+	printf("updated_rows %d\n", upd_rs);
+	//delete_rows(f_handle, hashed_table_name, &con);
 }

@@ -14,9 +14,9 @@ int main() {
 
 	table_create(fh, "tab3", schema);
 
-	table_delete(fh, "tab1");
+	//table_delete(fh, "tab1");
 	test_func(fh);
-	table_delete(fh, "tab2");
+	//table_delete(fh, "tab2");
 	//test_func(fh);
 	char c = getchar();
 	return 0;
