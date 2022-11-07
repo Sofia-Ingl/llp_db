@@ -7,7 +7,6 @@
 #define DB_MAX_ROW_SIZE 4096
 #define DB_MAX_TABLE_METADATA_SIZE 4096
 
-
 struct __attribute__((packed)) String_Metadata {
 	uint32_t hash;
 	uint16_t length;

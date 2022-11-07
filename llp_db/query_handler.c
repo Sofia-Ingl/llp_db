@@ -90,7 +90,7 @@ struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type d
 	};
 	return (struct Data_Row_Node) {
 		.column_name = hashed_column_name,
-			.new_value = schema_internal_value,
+			.value = schema_internal_value,
 			.next_node = NULL
 	};
 }
@@ -152,6 +152,25 @@ int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command
 }
 
 
+void print_table_row(struct Data_Row_Node* dr) {
+	printf("\t-ROW:\n");
+	while (dr != NULL) {
+		if (dr->value.data_type == STRING) {
+			printf("string %s\n", dr->value.value.db_string.value);
+		}
+		if (dr->value.data_type == INT) {
+			printf("int %d\n", dr->value.value.db_integer);
+		}
+		if (dr->value.data_type == FLOAT) {
+			printf("float %.3f\n", dr->value.value.db_float);
+		}
+		if (dr->value.data_type == BOOL) {
+			printf("bool %d\n", dr->value.value.db_boolean);
+		}
+		dr = dr->next_node;
+	}
+}
+
 
 void test_func(struct File_Handle* f_handle) {
 	struct String hashed_table_name = inner_string_create("tab2");
@@ -190,10 +209,47 @@ void test_func(struct File_Handle* f_handle) {
 	};
 	struct Condition con = create_simple_condition("col2", val, EQUALS);
 	
-	char* s3 = "i";
+	struct Result_Set rs = single_table_select(f_handle,
+		hashed_table_name,
+		&con,
+		-1, // -1 => all cols
+		NULL,
+		13);
+
+	printf("RESULT SET:\n");
+	printf(" rs.rows_num: %d\n", rs.rows_num);
+	printf(" rs.whole_table: %d\n", rs.whole_table);
+	printf(" rs.next_table_row_offset: %d\n", rs.next_table_row_offset);
+	printf("ROWS:\n");
+	for (uint32_t i = 0; i < rs.rows_num; i++)
+	{
+		print_table_row(rs.row_pointers[i]);
+	}
+
+
+	con = create_simple_condition("col1", val, EQUALS);
+
+	rs = single_table_select(f_handle,
+		hashed_table_name,
+		&con,
+		-1, // -1 => all cols
+		NULL,
+		13);
+
+	printf("RESULT SET2:\n");
+	printf(" rs.rows_num: %d\n", rs.rows_num);
+	printf(" rs.whole_table: %d\n", rs.whole_table);
+	printf(" rs.next_table_row_offset: %d\n", rs.next_table_row_offset);
+	printf("ROWS:\n");
+	for (uint32_t i = 0; i < rs.rows_num; i++)
+	{
+		print_table_row(rs.row_pointers[i]);
+	}
+
+	/*char* s3 = "i";
 	rn2 = create_data_row_node("col2", STRING, &s3);
 
 	int32_t upd_rs = update_rows(f_handle, hashed_table_name, &con, &rn2);
-	printf("updated_rows %d\n", upd_rs);
+	printf("updated_rows %d\n", upd_rs);*/
 	//delete_rows(f_handle, hashed_table_name, &con);
 }

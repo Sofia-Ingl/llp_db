@@ -155,4 +155,13 @@ struct Request {
 	union Request_Details request_details;
 };
 
+/*select response*/
+
+//struct Row_Set {
+//	//struct Table_Schema
+//	struct Data_Row_Node** rows;
+//
+//};
+
+
 #endif

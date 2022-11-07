@@ -36,7 +36,7 @@ struct Schema_Internals_Value {
 
 struct Data_Row_Node {
 	struct String column_name;
-	struct Schema_Internals_Value new_value;
+	struct Schema_Internals_Value value;
 	struct Data_Row_Node* next_node;
 };
 
@@ -94,6 +94,14 @@ struct Condition {
 	uint8_t is_simple;
 	union Condition_Union condition;
 };
+
+/*response*/
+//struct Row_Set {
+//	//struct Table_Schema
+//	struct Data_Row_Node** rows;
+//
+//};
+
 
 
 
