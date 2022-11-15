@@ -5,9 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 
-uint32_t hash(char* string, uint32_t st_len) {
-	return 0;
-}
+
 
 struct Table_Schema table_schema_init() {
 	void* column_metadata_array = malloc(sizeof(struct Column_Info_Block) * 10);
@@ -18,15 +16,7 @@ struct Table_Schema table_schema_init() {
 	};
 }
 
-struct String inner_string_create(char* str) {
-	int32_t str_length = strlen(str);
 
-	return (struct String) {
-		.hash = hash(str, str_length),
-			.length = str_length,
-			.value = str
-	};
-}
 
 int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum DB_Data_Type data_type) {
 	printf("table_schema_expand\n");
@@ -96,37 +86,6 @@ struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type d
 }
 
 
-struct Condition create_simple_condition(char* column_name, struct Schema_Internals_Value val, enum Condition_Relation relation) {
-	
-	struct Simple_Condition simp_cond = {
-		.column_name = inner_string_create(column_name),
-		.relation = relation,
-		.right_part = val
-	};
-	union Condition_Union cond_union = {
-		.simple_condition = simp_cond
-	};
-	return (struct Condition) {
-		.is_simple = 1,
-		.condition = cond_union
-	};
-}
-
-struct Condition create_complex_condition(struct Condition* left, struct Condition* right, enum Condition_Chain_Relation relation) {
-
-	struct Complex_Condition complex_cond = (struct Complex_Condition){
-		.left = left,
-		.relation = relation,
-		.right = right
-	};
-	union Condition_Union cond_union = {
-		.complex_condition = complex_cond
-	};
-	return (struct Condition) {
-		.is_simple = 0,
-		.condition = cond_union
-	};
-}
 
 
 
@@ -152,104 +111,371 @@ int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command
 }
 
 
+//void print_table_row(struct Data_Row_Node* dr) {
+//	printf("\t-ROW:\n");
+//	while (dr != NULL) {
+//		if (dr->value.data_type == STRING) {
+//			printf("string %s\n", dr->value.value.db_string.value);
+//		}
+//		if (dr->value.data_type == INT) {
+//			printf("int %d\n", dr->value.value.db_integer);
+//		}
+//		if (dr->value.data_type == FLOAT) {
+//			printf("float %.3f\n", dr->value.value.db_float);
+//		}
+//		if (dr->value.data_type == BOOL) {
+//			printf("bool %d\n", dr->value.value.db_boolean);
+//		}
+//		dr = dr->next_node;
+//	}
+//}
+
 void print_table_row(struct Data_Row_Node* dr) {
 	printf("\t-ROW:\n");
 	while (dr != NULL) {
 		if (dr->value.data_type == STRING) {
-			printf("string %s\n", dr->value.value.db_string.value);
+			printf("%s (string)   ", dr->value.value.db_string.value);
 		}
 		if (dr->value.data_type == INT) {
-			printf("int %d\n", dr->value.value.db_integer);
+			printf("%d (int)   ", dr->value.value.db_integer);
 		}
 		if (dr->value.data_type == FLOAT) {
-			printf("float %.3f\n", dr->value.value.db_float);
+			printf("%.3f (float)   ", dr->value.value.db_float);
 		}
 		if (dr->value.data_type == BOOL) {
-			printf("bool %d\n", dr->value.value.db_boolean);
+			printf("%d (bool)   ", dr->value.value.db_boolean);
 		}
 		dr = dr->next_node;
 	}
+	printf("\n");
 }
 
 
-void test_func(struct File_Handle* f_handle) {
-	struct String hashed_table_name = inner_string_create("tab2");
-	char* s1 = "Lis";
-	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
-	char* s2 = "Lisuudhue11111";
-	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
-	rn.next_node = &rn2;
-	insert_row(f_handle, hashed_table_name, &rn);
-
-	//struct String hashed_table_name = inner_string_create("tab2");
-	s1 = "kis";
-	rn = create_data_row_node("col1", STRING, &s1);
-	s2 = "Lisuudhue11111";
-	rn2 = create_data_row_node("col2", STRING, &s2);
-	rn.next_node = &rn2;
-	insert_row(f_handle, hashed_table_name, &rn);
-
-	//struct String hashed_table_name = inner_string_create("tab2");
-	s1 = "kis";
-	rn = create_data_row_node("col1", STRING, &s1);
-	s2 = "Kisuudhue";
-	rn2 = create_data_row_node("col2", STRING, &s2);
-	rn.next_node = &rn2;
-	insert_row(f_handle, hashed_table_name, &rn);
-
-	s2 = "Lisuudhue11111";
-	//(union Data) {
-	//	.db_string = inner_string_create(s2)
-	//};
-	struct Schema_Internals_Value val = (struct Schema_Internals_Value){
-		.data_type = STRING,
-		.value = (union Data) {
-			.db_string = inner_string_create(s2)
-		}
-	};
-	struct Condition con = create_simple_condition("col2", val, EQUALS);
-	
-	struct Result_Set rs = single_table_select(f_handle,
-		hashed_table_name,
-		&con,
-		-1, // -1 => all cols
-		NULL,
-		13);
-
-	printf("RESULT SET:\n");
-	printf(" rs.rows_num: %d\n", rs.rows_num);
-	printf(" rs.whole_table: %d\n", rs.whole_table);
-	printf(" rs.next_table_row_offset: %d\n", rs.next_table_row_offset);
-	printf("ROWS:\n");
-	for (uint32_t i = 0; i < rs.rows_num; i++)
+void print_joined_table_row(struct Table_Row_Lists_Bunch** trlb_cur_row_list, uint32_t* row_positions, uint32_t tab_num) {
+	printf("\t\t-JOINED ROW:\n");
+	for (uint32_t i = 0; i < tab_num; i++)
 	{
-		print_table_row(rs.row_pointers[i]);
+		void* row_list_buff = trlb_cur_row_list[i]->row_lists_buffer;
+		uint32_t row_start_in_buff = trlb_cur_row_list[i]->row_starts_in_buffer[row_positions[i]];
+		print_table_row((struct Data_Row_Node*)((uint8_t*)row_list_buff + row_start_in_buff));
+	}
+}
+
+void reset_row_arr_pos(struct Table_Row_Lists_Bunch** trlb_cur_row_list, uint32_t* row_positions /*in array of row starts*/, uint32_t tab_num) {
+
+	uint32_t not_fully_fetched_row_bunch_index = 0;
+
+	for (int32_t i = tab_num - 1; i >= 0; i--)
+	{
+		//try to find trlb to change
+		struct Table_Row_Lists_Bunch* table = trlb_cur_row_list[i];
+		if ((table->local_rows_num - 1) > row_positions[i]) {
+			not_fully_fetched_row_bunch_index = i;
+			row_positions[i]++;
+			break;
+		}
 	}
 
+	for (uint32_t i = not_fully_fetched_row_bunch_index + 1; i < tab_num; i++)
+	{
+		row_positions[i] = 0;
+		trlb_cur_row_list[i] = trlb_cur_row_list[i - 1]->row_tails[row_positions[i - 1]];
+	}
 
-	con = create_simple_condition("col1", val, EQUALS);
+	//struct Table_Row_Lists_Bunch* prev_table = trlb_cur_row_list[not_fully_fetched_row_bunch_index];
+	//for (uint32_t i = not_fully_fetched_row_bunch_index + 1; i < tab_num; i++)
+	//{
+	//	row_positions[i] = 0;
+	//	trlb_cur_row_list[i] = prev_table->row_tails[];
+	//}
+
+}
+
+
+void print_joined_table_rows(struct Join_Result_Set* rs) {
+
+	if (rs == NULL) {
+		printf("EMPTY JOIN RESULT SET\n");
+		return;
+	}
+	
+	//struct Data_Row_Node** arr = malloc(rs->joined_table.number_of_joined_tables * sizeof(struct Data_Row_Node*));
+
+	struct Table_Row_Lists_Bunch** trlb_cur_row_list = malloc(rs->joined_table.number_of_joined_tables * sizeof(struct Table_Row_Lists_Bunch*));
+	uint32_t* row_positions = malloc(rs->joined_table.number_of_joined_tables * sizeof(uint32_t));
+
+	struct Table_Row_Lists_Bunch* trlb = rs->rows_chain;
+	for (uint32_t i = 0; i < rs->joined_table.number_of_joined_tables; i++)
+	{
+		/*struct Data_Row_Node* drn = trlb->row_starts_in_buffer[0];
+		arr[i] = drn;*/
+
+		trlb_cur_row_list[i] = trlb;
+		trlb = (trlb->row_tails == NULL)? NULL : trlb->row_tails[0];
+		row_positions[i] = 0;
+	}
+
+	for (uint32_t i = 0; i < rs->joined_table.number_of_joined_tables; i++)
+	{
+		/*struct Data_Row_Node* drn = trlb->row_starts_in_buffer[0];
+		arr[i] = drn;*/
+
+		printf("%p trlb pointer\n", trlb_cur_row_list[i]);
+	}
+
+	
+
+	for (uint32_t i = 0; i < rs->rows_num; i++)
+	{
+		//print_joined_table_row(arr, rs->joined_table.number_of_joined_tables);
+		print_joined_table_row(trlb_cur_row_list, row_positions, rs->joined_table.number_of_joined_tables);
+		reset_row_arr_pos(trlb_cur_row_list, row_positions, rs->joined_table.number_of_joined_tables);
+		printf("pos0 %d pos1 %d\n", row_positions[0], row_positions[1]);
+	}
+
+	//for (size_t i = 0; i < trlb->local_rows_num; i++)
+	//{
+	//	printf("\t\t-JRRRRr:\n");
+	//	print_table_row(trlb->row_starts_in_buffer[i]);
+	//}
+
+	//free(arr);
+	free(trlb_cur_row_list);
+	free(row_positions);
+}
+
+
+//void test_func(struct File_Handle* f_handle) {
+//	struct String hashed_table_name = inner_string_create("tab2");
+//	char* s1 = "Lis";
+//	struct Data_Row_Node rn = create_data_row_node("col1", STRING, &s1);
+//	char* s2 = "Lisuudhue11111";
+//	struct Data_Row_Node rn2 = create_data_row_node("col2", STRING, &s2);
+//	rn.next_node = &rn2;
+//	insert_row(f_handle, hashed_table_name, &rn);
+//
+//	//struct String hashed_table_name = inner_string_create("tab2");
+//	s1 = "kis";
+//	rn = create_data_row_node("col1", STRING, &s1);
+//	s2 = "Lisuudhue11111";
+//	rn2 = create_data_row_node("col2", STRING, &s2);
+//	rn.next_node = &rn2;
+//	insert_row(f_handle, hashed_table_name, &rn);
+//
+//	//struct String hashed_table_name = inner_string_create("tab2");
+//	s1 = "kis";
+//	rn = create_data_row_node("col1", STRING, &s1);
+//	s2 = "Kisuudhue";
+//	rn2 = create_data_row_node("col2", STRING, &s2);
+//	rn.next_node = &rn2;
+//	insert_row(f_handle, hashed_table_name, &rn);
+//
+//	s2 = "Lisuudhue11111";
+//	//(union Data) {
+//	//	.db_string = inner_string_create(s2)
+//	//};
+//	struct Schema_Internals_Value val = (struct Schema_Internals_Value){
+//		.data_type = STRING,
+//		.value = (union Data) {
+//			.db_string = inner_string_create(s2)
+//		}
+//	};
+//	struct Condition con = create_simple_condition("col2", val, EQUALS);
+//	val = (struct Schema_Internals_Value){
+//		.data_type = STRING,
+//		.value = (union Data) {
+//			.db_string = inner_string_create(s1)
+//		}
+//	};
+//	struct Condition con1 = create_simple_condition("col1", val, EQUALS);
+//	struct Condition con2 = create_complex_condition(&con, &con1, OR);
+//	
+//	struct Result_Set* rs = single_table_select(f_handle,
+//		hashed_table_name,
+//		&con2,
+//		-1, // -1 => all cols
+//		NULL,
+//		1);
+//
+//	printf("RESULT SET:\n");
+//	printf(" rs.rows_num: %d\n", rs->rows_num);
+//	printf(" rs.whole_table: %d\n", rs->whole_table);
+//	printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
+//	printf("ROWS:\n");
+//	for (uint32_t i = 0; i < rs->rows_num; i++)
+//	{
+//		print_table_row(rs->row_pointers[i]);
+//	}
+//
+//	if (rs->whole_table == 0) {
+//		printf("need to feth another data bunch\n");
+//		rs = single_table_get_next(f_handle, rs, 10);
+//		printf("TAIL RESULT SET:\n");
+//		printf(" rs.rows_num: %d\n", rs->rows_num);
+//		printf(" rs.whole_table: %d\n", rs->whole_table);
+//		printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
+//		printf("ROWS:\n");
+//		for (uint32_t i = 0; i < rs->rows_num; i++)
+//		{
+//			print_table_row(rs->row_pointers[i]);
+//		}
+//	}
+//
+//
+//	//con = create_simple_condition("col1", val, EQUALS);
+//	//char* colname = "col1";
+//	//struct String cn = inner_string_create(colname);
+//	//rs = single_table_select(f_handle,
+//	//	hashed_table_name,
+//	//	&con,
+//	//	1, // -1 => all cols
+//	//	&cn,
+//	//	13);
+//
+//	//printf("RESULT SET2:\n");
+//	//printf(" rs.rows_num: %d\n", rs->rows_num);
+//	//printf(" rs.whole_table: %d\n", rs->whole_table);
+//	//printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
+//	//printf("ROWS:\n");
+//	//for (uint32_t i = 0; i < rs->rows_num; i++)
+//	//{
+//	//	print_table_row(rs->row_pointers[i]);
+//	//}
+//
+//	/*char* s3 = "i";
+//	rn2 = create_data_row_node("col2", STRING, &s3);
+//
+//	int32_t upd_rs = update_rows(f_handle, hashed_table_name, &con, &rn2);
+//	printf("updated_rows %d\n", upd_rs);*/
+//	//delete_rows(f_handle, hashed_table_name, &con);
+//}
+
+
+
+void test_func(struct File_Handle* f_handle) {
+
+	struct Table_Schema schema = table_schema_init();
+	table_schema_expand(&schema, "name", STRING);
+	table_schema_expand(&schema, "year", INT);
+	table_create(f_handle, "student", schema);
+
+	table_create(f_handle, "course", schema);
+
+
+	struct String hashed_table_name1 = inner_string_create("student");
+	
+	char* name = "Lis";
+	struct Data_Row_Node rn = create_data_row_node("name", STRING, &name);
+	int32_t year = 1;
+	struct Data_Row_Node rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+	name = "Adam";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+	name = "Rose";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 1;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+	
+	struct String hashed_table_name2 = inner_string_create("course");
+
+	name = "LLP";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+	name = "OS";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+	name = "Math";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 1;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+
+	struct Result_Set* rs = single_table_select(f_handle,
+		hashed_table_name2,
+		NULL,
+		-1, // -1 => all cols
+		NULL,
+		10);
+
+	printf("COURSE RESULT SET:\n");
+	printf(" rs.rows_num: %d\n", rs->rows_num);
+	printf(" rs.whole_table: %d\n", rs->whole_table);
+	printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
+	printf("ROWS:\n");
+	for (uint32_t i = 0; i < rs->rows_num; i++)
+	{
+		print_table_row(rs->row_pointers[i]);
+	}
+
 
 	rs = single_table_select(f_handle,
-		hashed_table_name,
-		&con,
+		hashed_table_name1,
+		NULL,
 		-1, // -1 => all cols
 		NULL,
-		13);
+		10);
 
-	printf("RESULT SET2:\n");
-	printf(" rs.rows_num: %d\n", rs.rows_num);
-	printf(" rs.whole_table: %d\n", rs.whole_table);
-	printf(" rs.next_table_row_offset: %d\n", rs.next_table_row_offset);
+	printf("STUDENT RESULT SET:\n");
+	printf(" rs.rows_num: %d\n", rs->rows_num);
+	printf(" rs.whole_table: %d\n", rs->whole_table);
+	printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
 	printf("ROWS:\n");
-	for (uint32_t i = 0; i < rs.rows_num; i++)
+	for (uint32_t i = 0; i < rs->rows_num; i++)
 	{
-		print_table_row(rs.row_pointers[i]);
+		print_table_row(rs->row_pointers[i]);
 	}
 
-	/*char* s3 = "i";
-	rn2 = create_data_row_node("col2", STRING, &s3);
+	struct String str_arr[2];
+	str_arr[0] = hashed_table_name1; // student
+	str_arr[1] = hashed_table_name2; //course
 
-	int32_t upd_rs = update_rows(f_handle, hashed_table_name, &con, &rn2);
-	printf("updated_rows %d\n", upd_rs);*/
-	//delete_rows(f_handle, hashed_table_name, &con);
+	struct Join_Condition jc = (struct Join_Condition){
+		.current_table_column_name = inner_string_create("year"),
+		.related_table_column_name = inner_string_create("year"),
+		.related_table_index = 0
+	};
+
+	struct Joined_Table jt = (struct Joined_Table){
+		.number_of_joined_tables = 2,
+		.table_names = str_arr,
+		.join_conditions = &jc
+	};
+
+	struct Condition* single_tab_cond[2];
+	single_tab_cond[0] = NULL;
+	single_tab_cond[1] = NULL;
+
+	uint32_t number_of_cols[2];
+	number_of_cols[0] = -1;
+	number_of_cols[1] = -1;
+
+	struct Join_Result_Set* jrs = table_chain_select(f_handle, jt, 
+		single_tab_cond, number_of_cols, NULL, 3);
+	
+	print_joined_table_rows(jrs);
+
+	jrs = table_chain_get_next(f_handle, jrs, 3);
+
+	print_joined_table_rows(jrs);
+
 }

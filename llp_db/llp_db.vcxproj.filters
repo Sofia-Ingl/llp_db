@@ -17,6 +17,9 @@
     <ClCompile Include="query_handler.c">
       <Filter>ram</Filter>
     </ClCompile>
+    <ClCompile Include="common_funcs.c">
+      <Filter>ram</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_handler.h">

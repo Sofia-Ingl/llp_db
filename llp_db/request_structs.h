@@ -79,25 +79,26 @@ struct Select;
 
 /*JOIN SELECT*/
 
-struct Join_Condition {
-	int32_t first_table_index;
-	int32_t second_table_index;
-	struct String first_table_column_name;
-	struct String second_table_column_name;
-};
-
-struct Joined_Table {
-	int32_t number_of_joined_tables;
-	struct String* table_names;
-	struct Join_Condition* join_conditions; // length = number_of_joined_tables - 1
-};
+//struct Join_Condition {
+//	int32_t first_table_index;
+//	int32_t second_table_index;
+//	struct String first_table_column_name;
+//	struct String second_table_column_name;
+//};
+//
+//struct Joined_Table {
+//	int32_t number_of_joined_tables;
+//	struct String* table_names;
+//	struct Join_Condition* join_conditions; // length = number_of_joined_tables - 1
+//};
 
 struct Joined_Table_Select {
 	int8_t all_columns;
 	struct Joined_Table joined_table;
-	int32_t number_of_columns;
-	struct Extended_Column_Name* column_names;
-	struct Condition condition;
+	int32_t* number_of_columns_from_each_table;
+	//struct Extended_Column_Name* column_names;
+	struct String** column_names; // array with len == joined_tables_num
+	struct Condition** conditions; // array with len == joined_tables_num
 };
 
 /*REQUESTS*/
@@ -107,7 +108,7 @@ struct Single_Table_Select {
 	struct String table_name;
 	int32_t number_of_columns;
 	struct String* column_names;
-	struct Condition condition;
+	struct Condition* condition;
 };
 
 union Select_Union {

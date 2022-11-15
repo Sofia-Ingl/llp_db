@@ -2,6 +2,7 @@
 #define COMMON_STRUCTS
 
 #include <stdint.h>
+#include <string.h>
 
 struct String {
 	uint32_t hash;
@@ -104,6 +105,35 @@ struct Condition {
 
 
 
+struct Join_Condition {
+	//int32_t first_table_index;
+	//int32_t second_table_index;
+	uint32_t related_table_index;
+	struct String related_table_column_name;
+	struct String current_table_column_name;
+};
+
+struct Joined_Table {
+	int32_t number_of_joined_tables;
+	struct String* table_names;
+	struct Join_Condition* join_conditions; // length = number_of_joined_tables - 1
+};
+
+
+
+
+
+
+
+
+
+uint32_t hash(char* string, uint32_t st_len);
+
+struct String inner_string_create(char* str);
+
+struct Condition create_simple_condition(char* column_name, struct Schema_Internals_Value val, enum Condition_Relation relation);
+
+struct Condition create_complex_condition(struct Condition* left, struct Condition* right, enum Condition_Chain_Relation relation);
 
 
 #endif

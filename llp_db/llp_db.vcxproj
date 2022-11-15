@@ -88,7 +88,14 @@
     <RemoteCleanCommandLine>make clean</RemoteCleanCommandLine>
     <RemoteBuildOutputs>/home/sofia/projects/llp_db/app</RemoteBuildOutputs>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <RemoteBuildCommandLine>make build</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>make rebuild</RemoteReBuildCommandLine>
+    <RemoteCleanCommandLine>make clean</RemoteCleanCommandLine>
+    <RemoteBuildOutputs>/home/sofia/projects/llp_db/app</RemoteBuildOutputs>
+  </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="common_funcs.c" />
     <ClCompile Include="file_handler.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="Makefile" />
