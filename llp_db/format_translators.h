@@ -1,6 +1,7 @@
 #ifndef FORMAT_TRANSLATORS
 #define FORMAT_TRANSLATORS
 
+#include "common_structs.h"
 #include "file_structs.h"
 #include "ram_structs.h"
 

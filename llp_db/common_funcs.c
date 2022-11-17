@@ -1,10 +1,18 @@
 #include "common_structs.h"
 
 
+uint32_t hash(char* str, uint32_t str_len) {
+	uint32_t hash = 5381;
+	uint32_t c;
 
+	for (uint32_t i = 0; i < str_len; i++)
+	{
+		c = (uint32_t)*(str + i);
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+	}
+		
 
-uint32_t hash(char* string, uint32_t st_len) {
-	return 0;
+	return hash;
 }
 
 
@@ -48,4 +56,14 @@ struct Condition create_complex_condition(struct Condition* left, struct Conditi
 		.is_simple = 0,
 			.condition = cond_union
 	};
+
+}
+
+
+
+void free_table_row_bunch_struct(struct Table_Row_Bunch* trb) {
+	free(trb->fetched_rows_buffer);
+	free(trb->row_tails);
+	free(trb->row_starts_in_buffer);
+	free(trb);
 }

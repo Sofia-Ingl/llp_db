@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct String {
 	uint32_t hash;
@@ -56,23 +57,7 @@ enum Condition_Chain_Relation {
 	OR
 };
 
-//struct Extended_Column_Name {
-//	struct String column_name;
-//	struct String table_name;
-//};
-
-//union Column_Name_Union {
-//	struct Extended_Column_Name extended_column_name;
-//	struct String simple_column_name;
-//};
-//
-//struct Column_Name {
-//	uint8_t is_simple;
-//	union Column_Name_Union column_name;
-//};
-
 struct Simple_Condition {
-	//struct Column_Name column_name;
 	struct String column_name;
 	enum Condition_Relation relation;
 	struct Schema_Internals_Value right_part;
@@ -98,8 +83,6 @@ struct Condition {
 
 
 struct Join_Condition {
-	//int32_t first_table_index;
-	//int32_t second_table_index;
 	uint32_t related_table_index;
 	struct String related_table_column_name;
 	struct String current_table_column_name;
@@ -119,7 +102,6 @@ struct Joined_Table {
 struct Table_Row_Lists_Bunch {
 	uint32_t local_rows_num;
 	void* row_lists_buffer;
-	//struct Data_Row_Node** row_starts_in_buffer;
 	uint32_t* row_starts_in_buffer;
 	struct Table_Row_Lists_Bunch** row_tails;
 };
@@ -130,11 +112,9 @@ struct Table_Row_Bunch {
 	uint32_t total_fetched_rows_num;
 	uint32_t row_sz_sum;
 	void* fetched_rows_buffer;
-	//struct Row_Header** row_starts_in_buffer;
 	uint32_t* row_starts_in_buffer;
 	struct Table_Row_Bunch** row_tails;
 };
-
 
 
 uint32_t hash(char* string, uint32_t st_len);
@@ -145,5 +125,6 @@ struct Condition create_simple_condition(char* column_name, struct Schema_Intern
 
 struct Condition create_complex_condition(struct Condition* left, struct Condition* right, enum Condition_Chain_Relation relation);
 
+void free_table_row_bunch_struct(struct Table_Row_Bunch* trb);
 
 #endif
