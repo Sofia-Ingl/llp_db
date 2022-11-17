@@ -19,6 +19,8 @@ int8_t table_delete(struct File_Handle* f_handle, char* table_name);
 
 int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command);
 
-void test_func(struct File_Handle* f_handle);
+void test_func1(struct File_Handle * f_handle);
+
+void test_func2(struct File_Handle * f_handle);
 
 #endif
