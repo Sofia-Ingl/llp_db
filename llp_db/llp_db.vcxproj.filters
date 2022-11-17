@@ -20,6 +20,12 @@
     <ClCompile Include="common_funcs.c">
       <Filter>ram</Filter>
     </ClCompile>
+    <ClCompile Include="filters.c">
+      <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="format_translators.c">
+      <Filter>file</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_handler.h">
@@ -39,6 +45,15 @@
     </ClInclude>
     <ClInclude Include="request_structs.h">
       <Filter>ram</Filter>
+    </ClInclude>
+    <ClInclude Include="filters.h">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="format_translators.h">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="file_handler_inner_structs.h">
+      <Filter>file</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

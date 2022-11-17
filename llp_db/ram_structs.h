@@ -48,13 +48,6 @@ struct Table_Chain_Result_Set {
 
 };
 
-/*rows in ram format*/
-struct Table_Row_Lists_Bunch {
-	uint32_t local_rows_num;
-	void* row_lists_buffer;
-	//struct Data_Row_Node** row_starts_in_buffer;
-	uint32_t* row_starts_in_buffer;
-	struct Table_Row_Lists_Bunch** row_tails;
-};
+
 
 #endif

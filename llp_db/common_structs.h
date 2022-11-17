@@ -56,20 +56,20 @@ enum Condition_Chain_Relation {
 	OR
 };
 
-struct Extended_Column_Name {
-	struct String column_name;
-	struct String table_name;
-};
+//struct Extended_Column_Name {
+//	struct String column_name;
+//	struct String table_name;
+//};
 
-union Column_Name_Union {
-	struct Extended_Column_Name extended_column_name;
-	struct String simple_column_name;
-};
-
-struct Column_Name {
-	uint8_t is_simple;
-	union Column_Name_Union column_name;
-};
+//union Column_Name_Union {
+//	struct Extended_Column_Name extended_column_name;
+//	struct String simple_column_name;
+//};
+//
+//struct Column_Name {
+//	uint8_t is_simple;
+//	union Column_Name_Union column_name;
+//};
 
 struct Simple_Condition {
 	//struct Column_Name column_name;
@@ -96,14 +96,6 @@ struct Condition {
 	union Condition_Union condition;
 };
 
-/*response*/
-//struct Row_Set {
-//	//struct Table_Schema
-//	struct Data_Row_Node** rows;
-//
-//};
-
-
 
 struct Join_Condition {
 	//int32_t first_table_index;
@@ -123,7 +115,25 @@ struct Joined_Table {
 
 
 
+/*rows in ram format*/
+struct Table_Row_Lists_Bunch {
+	uint32_t local_rows_num;
+	void* row_lists_buffer;
+	//struct Data_Row_Node** row_starts_in_buffer;
+	uint32_t* row_starts_in_buffer;
+	struct Table_Row_Lists_Bunch** row_tails;
+};
 
+/*rows in inner format*/
+struct Table_Row_Bunch {
+	uint32_t local_fetched_rows_num;
+	uint32_t total_fetched_rows_num;
+	uint32_t row_sz_sum;
+	void* fetched_rows_buffer;
+	//struct Row_Header** row_starts_in_buffer;
+	uint32_t* row_starts_in_buffer;
+	struct Table_Row_Bunch** row_tails;
+};
 
 
 

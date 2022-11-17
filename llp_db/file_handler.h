@@ -3,10 +3,6 @@
 
 #include "ram_structs.h"
 
-//struct Cursor {
-//	uint32_t next_row_offset;
-//};
-
 struct Joined_Table_Cursor {
 	uint32_t number_of_tables;
 	uint32_t* cursors;

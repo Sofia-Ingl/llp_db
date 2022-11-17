@@ -97,6 +97,8 @@
   <ItemGroup>
     <ClCompile Include="common_funcs.c" />
     <ClCompile Include="file_handler.c" />
+    <ClCompile Include="filters.c" />
+    <ClCompile Include="format_translators.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="Makefile" />
     <ClCompile Include="query_handler.c" />
@@ -104,7 +106,10 @@
   <ItemGroup>
     <ClInclude Include="common_structs.h" />
     <ClInclude Include="file_handler.h" />
+    <ClInclude Include="file_handler_inner_structs.h" />
     <ClInclude Include="file_structs.h" />
+    <ClInclude Include="filters.h" />
+    <ClInclude Include="format_translators.h" />
     <ClInclude Include="query_handler.h" />
     <ClInclude Include="ram_structs.h" />
     <ClInclude Include="request_structs.h" />
