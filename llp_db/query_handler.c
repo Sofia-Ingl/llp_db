@@ -595,7 +595,6 @@ void test_func2(struct File_Handle* f_handle) {
 	
 
 
-	
 	uint32_t num_of_cols = -1;
 	struct Condition* condit = NULL;
 	struct String* col_nams = NULL;
@@ -603,6 +602,11 @@ void test_func2(struct File_Handle* f_handle) {
 		&condit, &num_of_cols, &col_nams, 5);
 	printf("As single select\n");
 	print_joined_table_rows(jrs);
+	delete_table(f_handle, hashed_table_name2);
+	jrs = table_chain_select(f_handle, 1, &hashed_table_name2, NULL,
+		&condit, &num_of_cols, &col_nams, 5);
+	print_joined_table_rows(jrs);
+	printf("%d rnum\n", delete_rows(f_handle, hashed_table_name1, NULL));
 	jrs = table_chain_select(f_handle, 1, &hashed_table_name1, NULL,
 		&condit, &num_of_cols, &col_nams, 5);
 	print_joined_table_rows(jrs);

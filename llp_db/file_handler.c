@@ -415,42 +415,15 @@ uint32_t add_table_to_f_header_and_update_list(struct File_Handle* f_handle, uin
 	return 0;
 }
 
-struct Gap_List {
+struct Cleared_Row_List {
 	uint32_t first_gap_offset;
 	uint32_t last_gap_offset;
+	uint32_t first_preserved_row_offset;
+	uint32_t last_preserved_row_offset;
+	uint32_t number_of_rows_deleted;
 };
 
-/*ADD BUFFER OPTIMISATION FOR READ AND WRITE*/
-struct Gap_List clear_row_list(struct File_Handle* f_handle, uint32_t first_row_offset) {
-	printf("clear_row_list\n");
-	uint32_t curr_row_offset = first_row_offset;
-	uint32_t first_gap_offset = first_row_offset;
-	uint32_t last_gap_offset = -1;
-	while (curr_row_offset != -1) {
-		
-		struct Row_Header row_header;
-		read_from_db_file(f_handle, curr_row_offset, sizeof(struct Row_Header), &row_header);
-		void* buffer = malloc(row_header.row_size);
-		memset(buffer, 0, row_header.row_size);
-		struct Gap_Header* gap_header = (struct Gap_Header*)buffer;
-		gap_header->gap_size = row_header.row_size;
-		gap_header->next_gap_header_offset = row_header.next_row_header_offset;
-		gap_header->prev_gap_header_offset = row_header.prev_row_header_offset;
 
-		last_gap_offset = curr_row_offset;
-
-		write_into_db_file(f_handle, curr_row_offset, row_header.row_size, buffer);
-		free(buffer);
-
-		curr_row_offset = row_header.next_row_header_offset;
-		printf("another row is cleared\n");
-	}
-
-	return (struct Gap_List) {
-		.first_gap_offset = first_gap_offset,
-		.last_gap_offset = last_gap_offset
-	};
-}
 
 /*END INSERTION POLICY*/
 int32_t create_table(struct File_Handle* f_handle, struct String table_name, struct Table_Schema schema) {
@@ -479,106 +452,108 @@ int32_t create_table(struct File_Handle* f_handle, struct String table_name, str
 	return 0;
 }
 
-
-int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
-	printf("delete_table\n");
-
-	struct Table_Handle t_handle = find_table(f_handle, table_name);
-	if (t_handle.exists == 0) {
-		printf("tab doesnt exist\n");
-		return -1;
-	}
-
-	struct File_Header file_header;
-	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
-	if (read_res < sizeof(struct File_Header)) {
-		return -1;
-	}
-	// consistency of tab metadata list
-	if (file_header.first_table_offset == t_handle.table_metadata_offset) {
-		file_header.first_table_offset = t_handle.table_header.next_table_header_offset;
-	}
-	if (file_header.last_table_offset == t_handle.table_metadata_offset) {
-		file_header.last_table_offset = t_handle.table_header.prev_table_header_offset;
-	}
-	file_header.tables_number--;
-
-	if (t_handle.table_header.next_table_header_offset != -1) {
-		struct Table_Header next_th;
-		read_from_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
-		next_th.prev_table_header_offset = t_handle.table_header.prev_table_header_offset;
-		write_into_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
-	}
-	if (t_handle.table_header.prev_table_header_offset != -1) {
-		struct Table_Header prev_th;
-		read_from_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
-		prev_th.next_table_header_offset = t_handle.table_header.next_table_header_offset;
-		write_into_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
-	}
+//int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition);
 
 
-	/*clear rows*/
-	struct Gap_List new_gap_list = clear_row_list(f_handle, t_handle.table_header.first_row_offset);
-
-	printf("new gap list: first %d; last %d\n", new_gap_list.first_gap_offset, new_gap_list.last_gap_offset);
-
-	/*clear metadata*/
-	void* buffer = malloc(t_handle.table_header.table_metadata_size);
-	memset(buffer, 0, t_handle.table_header.table_metadata_size);
-	printf("t_handle.table_header.table_metadata_size %d\n", t_handle.table_header.table_metadata_size);
-	
-	struct Gap_Header* g_header = (struct Gap_Header*)buffer;
-	g_header->gap_size = t_handle.table_header.table_metadata_size;
-	g_header->next_gap_header_offset = new_gap_list.first_gap_offset;
-	g_header->prev_gap_header_offset = -1;
-
-	if (new_gap_list.first_gap_offset != -1) {
-	
-		struct Gap_Header first_new_gap_header;
-		read_from_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
-		
-		first_new_gap_header.prev_gap_header_offset = t_handle.table_metadata_offset;
-		printf("new_gap_list.first_gap_offset %d \n", new_gap_list.first_gap_offset);
-		write_into_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
-	}
-	else {
-		printf("no rows were in table AAAAAAAAAA\n");
-		new_gap_list.last_gap_offset = t_handle.table_metadata_offset;
-	}
-	
-	/*first gap in new gap list is created from table metadata*/
-	new_gap_list.first_gap_offset = t_handle.table_metadata_offset;
-	
-
-	if (file_header.first_gap_offset == -1) {
-		
-		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
-
-		file_header.first_gap_offset = new_gap_list.first_gap_offset;
-		file_header.last_gap_offset = new_gap_list.last_gap_offset;
-		
-	}
-	else {
-		/*maintain gap linked list*/
-		/*lenghten ll*/
-		struct Gap_Header last_gap_header;
-		read_from_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
-		last_gap_header.next_gap_header_offset = new_gap_list.first_gap_offset;
-		write_into_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
-
-		g_header->prev_gap_header_offset = file_header.last_gap_offset;
-		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
-
-		file_header.last_gap_offset = new_gap_list.last_gap_offset;
-
-	}
-	
-	
-	free(buffer);
-	write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
-
-	return 0;
-}
+//int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
+//	printf("delete_table\n");
+//
+//	struct Table_Handle t_handle = find_table(f_handle, table_name);
+//	if (t_handle.exists == 0) {
+//		printf("tab doesnt exist\n");
+//		return -1;
+//	}
+//
+//	struct File_Header file_header;
+//	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+//	if (read_res < sizeof(struct File_Header)) {
+//		return -1;
+//	}
+//	// consistency of tab metadata list
+//	if (file_header.first_table_offset == t_handle.table_metadata_offset) {
+//		file_header.first_table_offset = t_handle.table_header.next_table_header_offset;
+//	}
+//	if (file_header.last_table_offset == t_handle.table_metadata_offset) {
+//		file_header.last_table_offset = t_handle.table_header.prev_table_header_offset;
+//	}
+//	file_header.tables_number--;
+//
+//	if (t_handle.table_header.next_table_header_offset != -1) {
+//		struct Table_Header next_th;
+//		read_from_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
+//		next_th.prev_table_header_offset = t_handle.table_header.prev_table_header_offset;
+//		write_into_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
+//	}
+//	if (t_handle.table_header.prev_table_header_offset != -1) {
+//		struct Table_Header prev_th;
+//		read_from_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
+//		prev_th.next_table_header_offset = t_handle.table_header.next_table_header_offset;
+//		write_into_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
+//	}
+//
+//
+//	/*clear rows*/
+//	struct Gap_List new_gap_list = clear_row_list(f_handle, t_handle.table_header.first_row_offset);
+//
+//	printf("new gap list: first %d; last %d\n", new_gap_list.first_gap_offset, new_gap_list.last_gap_offset);
+//
+//	/*clear metadata*/
+//	void* buffer = malloc(t_handle.table_header.table_metadata_size);
+//	memset(buffer, 0, t_handle.table_header.table_metadata_size);
+//	printf("t_handle.table_header.table_metadata_size %d\n", t_handle.table_header.table_metadata_size);
+//	
+//	struct Gap_Header* g_header = (struct Gap_Header*)buffer;
+//	g_header->gap_size = t_handle.table_header.table_metadata_size;
+//	g_header->next_gap_header_offset = new_gap_list.first_gap_offset;
+//	g_header->prev_gap_header_offset = -1;
+//
+//	if (new_gap_list.first_gap_offset != -1) {
+//	
+//		struct Gap_Header first_new_gap_header;
+//		read_from_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+//		
+//		first_new_gap_header.prev_gap_header_offset = t_handle.table_metadata_offset;
+//		printf("new_gap_list.first_gap_offset %d \n", new_gap_list.first_gap_offset);
+//		write_into_db_file(f_handle, new_gap_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+//	}
+//	else {
+//		printf("no rows were in table AAAAAAAAAA\n");
+//		new_gap_list.last_gap_offset = t_handle.table_metadata_offset;
+//	}
+//	
+//	/*first gap in new gap list is created from table metadata*/
+//	new_gap_list.first_gap_offset = t_handle.table_metadata_offset;
+//	
+//
+//	if (file_header.first_gap_offset == -1) {
+//		
+//		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+//
+//		file_header.first_gap_offset = new_gap_list.first_gap_offset;
+//		file_header.last_gap_offset = new_gap_list.last_gap_offset;
+//		
+//	}
+//	else {
+//		/*maintain gap linked list*/
+//		/*lenghten ll*/
+//		struct Gap_Header last_gap_header;
+//		read_from_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+//		last_gap_header.next_gap_header_offset = new_gap_list.first_gap_offset;
+//		write_into_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+//
+//		g_header->prev_gap_header_offset = file_header.last_gap_offset;
+//		write_into_db_file(f_handle, new_gap_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+//
+//		file_header.last_gap_offset = new_gap_list.last_gap_offset;
+//
+//	}
+//	
+//	
+//	free(buffer);
+//	write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+//
+//	return 0;
+//}
 
 /*TRANSFORMATION LAYER*/
 void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_Row_Node* data_row) {
@@ -942,191 +917,8 @@ void* fetch_row_into_buffer(struct File_Handle* f_handle,
 }
 
 
-int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition) {
-	
-	struct Table_Handle tab_handle = find_table(f_handle, table_name);
-	if (tab_handle.exists == 0) {
-		printf("tab DOESNT exists, cannot delete from!\n");
-		return -1;
-	}
-	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
-	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
-
-	void* buffer = malloc(DB_MAX_ROW_SIZE);
-	uint32_t buff_sz = DB_MAX_ROW_SIZE;
-	uint32_t buffer_left_offset = 0;
-	uint32_t buffer_right_offset = 0;
-
-	uint32_t first_gap_offset = -1;
-	uint32_t last_gap_offset = -1;
-
-	uint32_t first_preserved_row_offset = -1;
-	uint32_t last_preserved_row_offset = -1;
-
-	int32_t number_of_rows_deleted = 0;
-
-	uint32_t current_row_offset = tab_handle.table_header.first_row_offset;
-
-	while (current_row_offset != -1) {
-
-		/*FETCH CURRENT ROW*/
-		
-		
-		uint32_t row_sz;
-		uint32_t row_header_pos;
-		
-		buffer = fetch_row_into_buffer(f_handle,
-			buffer,
-			current_row_offset,
-			&buff_sz,
-			&buffer_left_offset,
-			&buffer_right_offset,
-			&row_header_pos,
-			&row_sz);
-		
-		struct Row_Header* r_header = (struct Row_Header*)((uint8_t*)buffer + row_header_pos);
-		/*row is in buffer on row_header_pos position*/
-
-		/*APPLY FILTER*/
-		uint8_t row_suitable = apply_filter(table_metadata_buffer, (uint8_t*)buffer + row_header_pos, condition);
-
-		uint32_t next_row_offset = r_header->next_row_header_offset;
-
-		if (!row_suitable) {
-			/*DO NOT DELETE*/
-			r_header->prev_row_header_offset = last_preserved_row_offset;
-			if (first_preserved_row_offset == -1) {
-				first_preserved_row_offset = current_row_offset;
-			}
-			else {
-				
-				if (last_preserved_row_offset != r_header->prev_row_header_offset) {
-					// should fetch last row and set its next = current
-					uint32_t last_preserved_row_header_pos;
-					uint32_t last_preserved_row_sz;
-					buffer = fetch_row_into_buffer(f_handle,
-						buffer,
-						last_preserved_row_offset,
-						&buff_sz,
-						&buffer_left_offset,
-						&buffer_right_offset,
-						&last_preserved_row_header_pos,
-						&last_preserved_row_sz);
-					struct Row_Header* last_preserved_r_header = (struct Row_Header*)((uint8_t*)buffer + last_preserved_row_header_pos);
-					last_preserved_r_header->next_row_header_offset = current_row_offset;
-				}
-				
-
-			}
-			last_preserved_row_offset = current_row_offset;
-			
-		}
-		else {
-			/*DELETE ROW*/
-
-			uint32_t next_potential_gap_offset = r_header->next_row_header_offset;
-			uint32_t prev_row_header_offset = r_header->next_row_header_offset;
-
-			memset((uint8_t*)buffer + row_header_pos, 0, row_sz);
-
-			
-			struct Gap_Header* g_header = (struct Gap_Header*)((uint8_t*)buffer + row_header_pos);
-			g_header->gap_size = row_sz;
-			g_header->prev_gap_header_offset = last_gap_offset;
-			g_header->next_gap_header_offset = next_potential_gap_offset;
 
 
-			if (first_gap_offset == -1) {
-				// first deleted row
-				first_gap_offset = current_row_offset;
-			}
-			else {
-				if (last_gap_offset != prev_row_header_offset) {
-					// should fetch last gap and set its next gap = current
-					uint32_t last_gap_header_pos;
-					uint32_t last_gap_sz;
-					/*WE CAN do that because Row and Gap headers are same*/
-					buffer = fetch_row_into_buffer(f_handle,
-						buffer,
-						last_gap_offset,
-						&buff_sz,
-						&buffer_left_offset,
-						&buffer_right_offset,
-						&last_gap_header_pos,
-						&last_gap_sz);
-					struct Gap_Header* last_gap_header = (struct Gap_Header*)((uint8_t*)buffer + last_gap_header_pos);
-					last_gap_header->next_gap_header_offset = current_row_offset;
-				}
-			}
-
-			last_gap_offset = current_row_offset;
-			
-			number_of_rows_deleted++;
-
-		}
-		current_row_offset = next_row_offset;
-
-	}
-	flush_buffer(f_handle, buffer_left_offset, buffer_right_offset, buffer);
-
-	/*TABLE ROW LINKED LIST CONSISTENCY*/
-	tab_handle.table_header.first_row_offset = first_preserved_row_offset;
-	tab_handle.table_header.last_row_offset = last_preserved_row_offset;
-	write_into_db_file(f_handle, tab_handle.table_metadata_offset, sizeof(struct Table_Header), &tab_handle.table_header);
-	if (last_preserved_row_offset != -1) {
-		struct Row_Header r_header;
-		read_from_db_file(f_handle, last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
-		if (r_header.next_row_header_offset != -1) {
-			r_header.next_row_header_offset = -1;
-			write_into_db_file(f_handle, last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
-		}
-	}
-	
-
-	/*GAP LINKED LIST CONSISTENCY*/
-
-	if (first_gap_offset != -1) {
-		/*have to change gap list cause of new gaps*/
-		printf("we have deleted rows\n");
-		struct File_Header f_header;
-		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
-		if (f_header.first_gap_offset == -1) {
-			f_header.first_gap_offset = first_gap_offset;
-		}
-		else {
-			/*should fetch prev last gap header from db and set ins next = first gap created from curr table*/
-
-			struct Gap_Header prev_last_g_header;
-			read_from_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
-			prev_last_g_header.next_gap_header_offset = first_gap_offset;
-			write_into_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
-
-			/*should fetch first created gap header and set its prev*/
-			struct Gap_Header first_created_g_header;
-			read_from_db_file(f_handle, first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
-			first_created_g_header.prev_gap_header_offset = f_header.last_gap_offset;
-			write_into_db_file(f_handle, first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
-
-		}
-		f_header.last_gap_offset = last_gap_offset;
-		write_into_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
-
-
-		struct Gap_Header g_header;
-		read_from_db_file(f_handle, last_gap_offset, sizeof(struct Gap_Header), &g_header); // last gap offset != -1
-		if (g_header.next_gap_header_offset != -1) {
-			g_header.next_gap_header_offset = -1;
-			write_into_db_file(f_handle, last_gap_offset, sizeof(struct Gap_Header), &g_header);
-		}
-		
-	}
-
-	
-
-	free(buffer);
-	free(table_metadata_buffer);
-	return number_of_rows_deleted;
-}
 
 
 struct Update_Set {
@@ -2416,4 +2208,307 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 }
 
 
+struct Cleared_Row_List clear_row_list_by_condition(struct File_Handle* f_handle, void* table_metadata_buffer, uint32_t first_row_offset, struct Condition* condition) {
 
+	void* buffer = malloc(DB_MAX_ROW_SIZE);
+	uint32_t buff_sz = DB_MAX_ROW_SIZE;
+	uint32_t buffer_left_offset = 0;
+	uint32_t buffer_right_offset = 0;
+
+	uint32_t first_gap_offset = -1;
+	uint32_t last_gap_offset = -1;
+
+	uint32_t first_preserved_row_offset = -1;
+	uint32_t last_preserved_row_offset = -1;
+
+	int32_t number_of_rows_deleted = 0;
+
+	uint32_t current_row_offset = first_row_offset;
+
+	while (current_row_offset != -1) {
+
+		/*FETCH CURRENT ROW*/
+
+
+		uint32_t row_sz;
+		uint32_t row_header_pos;
+
+		buffer = fetch_row_into_buffer(f_handle,
+			buffer,
+			current_row_offset,
+			&buff_sz,
+			&buffer_left_offset,
+			&buffer_right_offset,
+			&row_header_pos,
+			&row_sz);
+
+		struct Row_Header* r_header = (struct Row_Header*)((uint8_t*)buffer + row_header_pos);
+		/*row is in buffer on row_header_pos position*/
+
+		/*APPLY FILTER*/
+		uint8_t row_suitable = apply_filter(table_metadata_buffer, (uint8_t*)buffer + row_header_pos, condition);
+
+		uint32_t next_row_offset = r_header->next_row_header_offset;
+
+		if (!row_suitable) {
+			/*DO NOT DELETE*/
+			r_header->prev_row_header_offset = last_preserved_row_offset;
+			if (first_preserved_row_offset == -1) {
+				first_preserved_row_offset = current_row_offset;
+			}
+			else {
+
+				if (last_preserved_row_offset != r_header->prev_row_header_offset) {
+					// should fetch last row and set its next = current
+					uint32_t last_preserved_row_header_pos;
+					uint32_t last_preserved_row_sz;
+					buffer = fetch_row_into_buffer(f_handle,
+						buffer,
+						last_preserved_row_offset,
+						&buff_sz,
+						&buffer_left_offset,
+						&buffer_right_offset,
+						&last_preserved_row_header_pos,
+						&last_preserved_row_sz);
+					struct Row_Header* last_preserved_r_header = (struct Row_Header*)((uint8_t*)buffer + last_preserved_row_header_pos);
+					last_preserved_r_header->next_row_header_offset = current_row_offset;
+				}
+
+
+			}
+			last_preserved_row_offset = current_row_offset;
+
+		}
+		else {
+			/*DELETE ROW*/
+
+			uint32_t next_potential_gap_offset = r_header->next_row_header_offset;
+			uint32_t prev_row_header_offset = r_header->next_row_header_offset;
+
+			memset((uint8_t*)buffer + row_header_pos, 0, row_sz);
+
+
+			struct Gap_Header* g_header = (struct Gap_Header*)((uint8_t*)buffer + row_header_pos);
+			g_header->gap_size = row_sz;
+			g_header->prev_gap_header_offset = last_gap_offset;
+			g_header->next_gap_header_offset = next_potential_gap_offset;
+
+
+			if (first_gap_offset == -1) {
+				// first deleted row
+				first_gap_offset = current_row_offset;
+			}
+			else {
+				if (last_gap_offset != prev_row_header_offset) {
+					// should fetch last gap and set its next gap = current
+					uint32_t last_gap_header_pos;
+					uint32_t last_gap_sz;
+					/*WE CAN do that because Row and Gap headers are same*/
+					buffer = fetch_row_into_buffer(f_handle,
+						buffer,
+						last_gap_offset,
+						&buff_sz,
+						&buffer_left_offset,
+						&buffer_right_offset,
+						&last_gap_header_pos,
+						&last_gap_sz);
+					struct Gap_Header* last_gap_header = (struct Gap_Header*)((uint8_t*)buffer + last_gap_header_pos);
+					last_gap_header->next_gap_header_offset = current_row_offset;
+				}
+			}
+
+			last_gap_offset = current_row_offset;
+
+			number_of_rows_deleted++;
+
+		}
+		current_row_offset = next_row_offset;
+
+	}
+	flush_buffer(f_handle, buffer_left_offset, buffer_right_offset, buffer);
+	free(buffer);
+	return (struct Cleared_Row_List) {
+		.first_gap_offset = first_gap_offset,
+			.last_gap_offset = last_gap_offset,
+			.first_preserved_row_offset = first_preserved_row_offset,
+			.last_preserved_row_offset = last_preserved_row_offset,
+			.number_of_rows_deleted = number_of_rows_deleted
+	};
+
+	
+}
+
+
+int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
+	printf("delete_table\n");
+
+	struct Table_Handle t_handle = find_table(f_handle, table_name);
+	if (t_handle.exists == 0) {
+		printf("tab doesnt exist\n");
+		return -1;
+	}
+
+	struct File_Header file_header;
+	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+	if (read_res < sizeof(struct File_Header)) {
+		return -1;
+	}
+	// consistency of tab metadata list
+	if (file_header.first_table_offset == t_handle.table_metadata_offset) {
+		file_header.first_table_offset = t_handle.table_header.next_table_header_offset;
+	}
+	if (file_header.last_table_offset == t_handle.table_metadata_offset) {
+		file_header.last_table_offset = t_handle.table_header.prev_table_header_offset;
+	}
+	file_header.tables_number--;
+
+	if (t_handle.table_header.next_table_header_offset != -1) {
+		struct Table_Header next_th;
+		read_from_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
+		next_th.prev_table_header_offset = t_handle.table_header.prev_table_header_offset;
+		write_into_db_file(f_handle, t_handle.table_header.next_table_header_offset, sizeof(struct Table_Header), &next_th);
+	}
+	if (t_handle.table_header.prev_table_header_offset != -1) {
+		struct Table_Header prev_th;
+		read_from_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
+		prev_th.next_table_header_offset = t_handle.table_header.next_table_header_offset;
+		write_into_db_file(f_handle, t_handle.table_header.prev_table_header_offset, sizeof(struct Table_Header), &prev_th);
+	}
+
+
+	/*clear rows*/
+	struct Cleared_Row_List crow_list = clear_row_list_by_condition(f_handle, NULL, t_handle.table_header.first_row_offset, NULL);
+
+	printf("new gap list: first %d; last %d\n", crow_list.first_gap_offset, crow_list.last_gap_offset);
+
+	/*clear metadata*/
+	void* buffer = malloc(t_handle.table_header.table_metadata_size);
+	memset(buffer, 0, t_handle.table_header.table_metadata_size);
+	printf("t_handle.table_header.table_metadata_size %d\n", t_handle.table_header.table_metadata_size);
+
+	struct Gap_Header* g_header = (struct Gap_Header*)buffer;
+	g_header->gap_size = t_handle.table_header.table_metadata_size;
+	g_header->next_gap_header_offset = crow_list.first_gap_offset;
+	g_header->prev_gap_header_offset = -1;
+
+	if (crow_list.first_gap_offset != -1) {
+
+		struct Gap_Header first_new_gap_header;
+		read_from_db_file(f_handle, crow_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+
+		first_new_gap_header.prev_gap_header_offset = t_handle.table_metadata_offset;
+		printf("new_gap_list.first_gap_offset %d \n", crow_list.first_gap_offset);
+		write_into_db_file(f_handle, crow_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
+	}
+	else {
+		printf("no rows were in table AAAAAAAAAA\n");
+		crow_list.last_gap_offset = t_handle.table_metadata_offset;
+	}
+
+	/*first gap in new gap list is created from table metadata*/
+	crow_list.first_gap_offset = t_handle.table_metadata_offset;
+
+
+	if (file_header.first_gap_offset == -1) {
+
+		write_into_db_file(f_handle, crow_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+
+		file_header.first_gap_offset = crow_list.first_gap_offset;
+		file_header.last_gap_offset = crow_list.last_gap_offset;
+
+	}
+	else {
+		/*maintain gap linked list*/
+		/*lenghten ll*/
+		struct Gap_Header last_gap_header;
+		read_from_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+		last_gap_header.next_gap_header_offset = crow_list.first_gap_offset;
+		write_into_db_file(f_handle, file_header.last_gap_offset, sizeof(struct Gap_Header), &last_gap_header);
+
+		g_header->prev_gap_header_offset = file_header.last_gap_offset;
+		write_into_db_file(f_handle, crow_list.first_gap_offset, t_handle.table_header.table_metadata_size, g_header);
+
+		file_header.last_gap_offset = crow_list.last_gap_offset;
+
+	}
+
+
+	free(buffer);
+	write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
+
+	return 0;
+}
+
+
+
+int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition) {
+
+	struct Table_Handle tab_handle = find_table(f_handle, table_name);
+	if (tab_handle.exists == 0) {
+		printf("tab DOESNT exists, cannot delete from!\n");
+		return -1;
+	}
+
+	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
+	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
+
+
+	struct Cleared_Row_List cleared_row_list = clear_row_list_by_condition(f_handle, table_metadata_buffer, tab_handle.table_header.first_row_offset, condition);
+
+
+	/*TABLE ROW LINKED LIST CONSISTENCY*/
+	tab_handle.table_header.first_row_offset = cleared_row_list.first_preserved_row_offset;
+	tab_handle.table_header.last_row_offset = cleared_row_list.last_preserved_row_offset;
+	write_into_db_file(f_handle, tab_handle.table_metadata_offset, sizeof(struct Table_Header), &tab_handle.table_header);
+	if (cleared_row_list.last_preserved_row_offset != -1) {
+		struct Row_Header r_header;
+		read_from_db_file(f_handle, cleared_row_list.last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
+		if (r_header.next_row_header_offset != -1) {
+			r_header.next_row_header_offset = -1;
+			write_into_db_file(f_handle, cleared_row_list.last_preserved_row_offset, sizeof(struct Row_Header), &r_header);
+		}
+	}
+
+
+	/*GAP LINKED LIST CONSISTENCY*/
+
+	if (cleared_row_list.first_gap_offset != -1) {
+		/*have to change gap list cause of new gaps*/
+		printf("we have deleted rows\n");
+		struct File_Header f_header;
+		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
+		if (f_header.first_gap_offset == -1) {
+			f_header.first_gap_offset = cleared_row_list.first_gap_offset;
+		}
+		else {
+			/*should fetch prev last gap header from db and set ins next = first gap created from curr table*/
+
+			struct Gap_Header prev_last_g_header;
+			read_from_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
+			prev_last_g_header.next_gap_header_offset = cleared_row_list.first_gap_offset;
+			write_into_db_file(f_handle, f_header.last_gap_offset, sizeof(struct Gap_Header), &prev_last_g_header);
+
+			/*should fetch first created gap header and set its prev*/
+			struct Gap_Header first_created_g_header;
+			read_from_db_file(f_handle, cleared_row_list.first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
+			first_created_g_header.prev_gap_header_offset = f_header.last_gap_offset;
+			write_into_db_file(f_handle, cleared_row_list.first_gap_offset, sizeof(struct Gap_Header), &first_created_g_header);
+
+		}
+		f_header.last_gap_offset = cleared_row_list.last_gap_offset;
+		write_into_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
+
+
+		struct Gap_Header g_header;
+		read_from_db_file(f_handle, cleared_row_list.last_gap_offset, sizeof(struct Gap_Header), &g_header); // last gap offset != -1
+		if (g_header.next_gap_header_offset != -1) {
+			g_header.next_gap_header_offset = -1;
+			write_into_db_file(f_handle, cleared_row_list.last_gap_offset, sizeof(struct Gap_Header), &g_header);
+		}
+
+	}
+
+
+	free(table_metadata_buffer);
+	return cleared_row_list.number_of_rows_deleted;
+}
