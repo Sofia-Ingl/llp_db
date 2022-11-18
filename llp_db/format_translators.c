@@ -25,15 +25,16 @@ uint32_t calc_inner_format_value_sz(enum DB_Data_Type data_type, void* value) {
 }
 
 
-void* add_row_to_result_buffer(void* table_metadata_buffer,
-	int32_t number_of_selected_columns,
+uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
+	uint32_t number_of_selected_columns,
 	struct String* column_names,
 	void* result_buffer,
 	//uint32_t* result_buffer_sz,
-	uint32_t* result_buffer_position,
+	/*uint32_t* result_buffer_position,*/
+	uint32_t result_buffer_position,
 	void* row) {
 	printf("add_row_to_result_buffer\n");
-	void* new_result_row_start = (uint8_t*)result_buffer + *result_buffer_position;
+	void* new_result_row_start = (uint8_t*)result_buffer + result_buffer_position;
 
 	struct Row_Header* row_header = (struct Row_Header*)row;
 	uint8_t select_all_columns = (number_of_selected_columns == -1) ? 1 : 0;
@@ -75,7 +76,7 @@ void* add_row_to_result_buffer(void* table_metadata_buffer,
 
 			// should_add current col val to result set
 
-			void* pos_to_write_result_col_val = (uint8_t*)result_buffer + *result_buffer_position;
+			void* pos_to_write_result_col_val = (uint8_t*)result_buffer + result_buffer_position;
 			struct Data_Row_Node* result_col_val = (struct Data_Row_Node*)pos_to_write_result_col_val;
 
 			result_col_val->next_node = NULL;
@@ -122,11 +123,11 @@ void* add_row_to_result_buffer(void* table_metadata_buffer,
 			if (prev_col_val_in_res_position != -1) {
 				// set prev col val's next
 				struct Data_Row_Node* prev_result_col_val = (struct Data_Row_Node*)((uint8_t*)result_buffer + prev_col_val_in_res_position);
-				prev_result_col_val->next_node = (struct Data_Row_Node*)((uint8_t*)result_buffer + *result_buffer_position);
+				prev_result_col_val->next_node = (struct Data_Row_Node*)((uint8_t*)result_buffer + result_buffer_position);
 			}
 
-			prev_col_val_in_res_position = *result_buffer_position; // prev = current
-			*result_buffer_position = *result_buffer_position + sizeof(struct Data_Row_Node) + offset_from_row_node_end;
+			prev_col_val_in_res_position = result_buffer_position; // prev = current
+			result_buffer_position = result_buffer_position + sizeof(struct Data_Row_Node) + offset_from_row_node_end;
 
 		}
 
@@ -134,7 +135,7 @@ void* add_row_to_result_buffer(void* table_metadata_buffer,
 		row_position = row_position + curr_col_val_sz;
 	}
 
-	return new_result_row_start;
+	return result_buffer_position;
 }
 
 
@@ -325,10 +326,23 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 	if (trb == NULL) {
 		return NULL;
 	}
+
+	uint32_t metadata_sz = tab_handle_array[current_tab_idx].table_header.table_metadata_size;
 	uint32_t number_of_columns = (number_of_columns_from_each_table[current_tab_idx] == -1) ? tab_handle_array[current_tab_idx].table_header.columns_number : number_of_columns_from_each_table[current_tab_idx];
-	uint32_t upper_bound_on_row_lists_buffer_sz = trb->row_sz_sum
+	uint32_t upper_bound_on_row_lists_buffer_sz = 
+		trb->row_sz_sum
+		+ metadata_sz
+		- sizeof(struct Table_Header)
+		- sizeof(struct Column_Header) * number_of_columns
 		- trb->local_fetched_rows_num * sizeof(struct Row_Header)
 		+ sizeof(struct Data_Row_Node) * number_of_columns * trb->local_fetched_rows_num;
+	//uint32_t upper_bound_on_row_lists_buffer_sz = DB_MAX_ROW_SIZE;
+
+	/*printf("COLLLZ NUM\n");
+	for (size_t i = 0; i < 3; i++)
+	{
+		printf("%d\n", number_of_columns_from_each_table[i]);
+	}*/
 
 	void* row_lists_buffer = malloc(upper_bound_on_row_lists_buffer_sz);
 
@@ -343,22 +357,17 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 
 	uint32_t row_lists_buffer_position = 0;
 
-
 	for (uint32_t i = 0; i < trb->local_fetched_rows_num; i++)
 	{
 		struct Row_Header* rh = (struct Row_Header*)((uint8_t*)trb->fetched_rows_buffer + trb->row_starts_in_buffer[i]);
-		printf("%p\n", table_metadata_buffers[current_tab_idx]);
 		row_starts_in_buffer[i] = row_lists_buffer_position;
-
-		void* new_result_row_pointer = add_row_to_result_buffer(table_metadata_buffers[current_tab_idx],
+		row_lists_buffer_position = add_row_to_result_buffer(table_metadata_buffers[current_tab_idx],
 			number_of_columns_from_each_table[current_tab_idx],
 			(column_names == NULL) ? NULL : column_names[current_tab_idx],
 			row_lists_buffer,
-			&row_lists_buffer_position,
+			row_lists_buffer_position,
 			rh);
-
-		//row_starts_in_buffer[i] = new_result_row_pointer;
-
+		
 		if (trb->row_tails != NULL) {
 			struct Table_Row_Lists_Bunch* current_row_tails = transform_row_bunch_into_ram_format(tab_handle_array, table_metadata_buffers, trb->row_tails[i],
 				current_tab_idx + 1,
@@ -367,6 +376,12 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 			row_tails[i] = current_row_tails;
 		}
 
+	}
+	
+	printf("trb->local_fetched_rows_num %d HHHHHHHHHHhaaaaaaaaaaa\n", trb->local_fetched_rows_num);
+	for (uint32_t i = 0; i < trb->local_fetched_rows_num; i++)
+	{
+		printf("row_starts_in_buffer[i] %d AAAAAAAAAAAAa\n", row_starts_in_buffer[i]);
 	}
 
 

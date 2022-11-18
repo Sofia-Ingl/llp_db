@@ -15,7 +15,7 @@ int main() {
 	table_create(fh, "tab3", schema);*/
 
 	//table_delete(fh, "tab1");
-	test_func2(fh);
+	test_func1(fh);
 	//table_delete(fh, "tab2");
 	//test_func(fh);
 	char c = getchar();

@@ -23,4 +23,6 @@ void test_func1(struct File_Handle * f_handle);
 
 void test_func2(struct File_Handle * f_handle);
 
+void test_func3(struct File_Handle* f_handle);
+
 #endif

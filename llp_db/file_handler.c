@@ -393,6 +393,11 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
 	
 	void* row_data = transform_data_row_into_db_format(table_metadata_buffer, data_row);
+	if (row_data == NULL) {
+		printf("transformation error!\n");
+		return -1;
+	}
+
 	struct Row_Header* row_header = (struct Row_Header*)row_data;
 	int32_t file_end = find_file_end(f_handle);
 
@@ -1547,10 +1552,23 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 
 	uint32_t fetched_rows_num = raw_rows_chain->total_fetched_rows_num;
 
+	for (size_t i = 0; i < number_of_joined_tables; i++)
+	{
+		printf("raw_rows_chain ROW START %d\n", raw_rows_chain->row_starts_in_buffer[i]);
+		printf("number of cols %d\n", number_of_columns_from_each_table[i]);
+	}
+
+
 	struct Table_Row_Lists_Bunch* rows_chain = transform_row_bunch_into_ram_format(tab_handle_array, table_metadata_buffers, raw_rows_chain,
 		0,
 		number_of_columns_from_each_table,
 		column_names);
+
+	for (size_t i = 0; i < number_of_joined_tables; i++)
+	{
+		printf("rows_chain ROW START %d\n", rows_chain->row_starts_in_buffer[i]);
+		printf("number of cols %d\n", number_of_columns_from_each_table[i]);
+	}
 
 	free(row_chain_buffer);
 
