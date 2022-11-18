@@ -91,6 +91,8 @@ struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type d
 
 
 int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table_Schema schema) {
+	
+	
 	struct String hashed_tab_name = inner_string_create(table_name);
 	create_table(f_handle, hashed_tab_name, schema);
 }
@@ -233,79 +235,12 @@ void print_joined_table_rows(struct Table_Chain_Result_Set* rs) {
 		printf("pos0 %d pos1 %d\n", row_positions[0], row_positions[1]);
 	}
 
-	//for (size_t i = 0; i < trlb->local_rows_num; i++)
-	//{
-	//	printf("\t\t-JRRRRr:\n");
-	//	print_table_row(trlb->row_starts_in_buffer[i]);
-	//}
 
-	//free(arr);
 	free(trlb_cur_row_list);
 	free(row_positions);
 }
 
 
-
-void print_joined_table_rowstarts(struct Table_Chain_Result_Set* rs) {
-
-	if (rs == NULL) {
-		printf("EMPTY JOIN RESULT SET\n");
-		return;
-	}
-
-	//struct Data_Row_Node** arr = malloc(rs->joined_table.number_of_joined_tables * sizeof(struct Data_Row_Node*));
-
-	struct Table_Row_Lists_Bunch** trlb_cur_row_list = malloc(rs->number_of_joined_tables * sizeof(struct Table_Row_Lists_Bunch*));
-	uint32_t* row_positions = malloc(rs->number_of_joined_tables * sizeof(uint32_t));
-
-	struct Table_Row_Lists_Bunch* trlb = rs->rows_chain;
-	for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
-	{
-		/*struct Data_Row_Node* drn = trlb->row_starts_in_buffer[0];
-		arr[i] = drn;*/
-
-		trlb_cur_row_list[i] = trlb;
-		trlb = (trlb->row_tails == NULL) ? NULL : trlb->row_tails[0];
-		row_positions[i] = 0;
-	}
-
-	for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
-	{
-		/*struct Data_Row_Node* drn = trlb->row_starts_in_buffer[0];
-		arr[i] = drn;*/
-
-		printf("%p trlb pointer\n", trlb_cur_row_list[i]);
-	}
-
-
-
-	for (uint32_t i = 0; i < rs->rows_num; i++)
-	{
-		//print_joined_table_row(arr, rs->joined_table.number_of_joined_tables);
-		//print_joined_table_row(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
-
-		printf("ROW STARTS\n");
-		for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
-		{
-			void* row_list_buff = trlb_cur_row_list[i]->row_lists_buffer;
-			uint32_t row_start_in_buff = trlb_cur_row_list[i]->row_starts_in_buffer[row_positions[i]]; // trlb_cur_row_list[i]->row_starts_in_buffer[row_positions[i]] bug
-			printf("ROW st %d\n", row_start_in_buff);
-		}
-
-		reset_row_arr_pos(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
-		printf("pos0 %d pos1 %d pos2 %d\n", row_positions[0], row_positions[1], row_positions[2]);
-	}
-
-	//for (size_t i = 0; i < trlb->local_rows_num; i++)
-	//{
-	//	printf("\t\t-JRRRRr:\n");
-	//	print_table_row(trlb->row_starts_in_buffer[i]);
-	//}
-
-	//free(arr);
-	free(trlb_cur_row_list);
-	free(row_positions);
-}
 
 
 
@@ -914,4 +849,65 @@ void test_func3(struct File_Handle* f_handle) {
 	printf("As single select\n");
 	print_joined_table_rows(jrs);
 
+}
+
+
+void test_func4(struct File_Handle* f_handle) {
+
+	struct Table_Schema schema = table_schema_init();
+	table_schema_expand(&schema, "name", STRING);
+	table_schema_expand(&schema, "year", INT);
+	table_create(f_handle, "student", schema);
+
+	table_create(f_handle, "course", schema);
+
+
+	struct String hashed_table_name1 = inner_string_create("student");
+
+	char* name = "Lis";
+	struct Data_Row_Node rn = create_data_row_node("name", STRING, &name);
+	int32_t year = 1;
+	struct Data_Row_Node rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+
+	struct String hashed_table_name2 = inner_string_create("course");
+
+	name = "LLP";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+	name = "Adam";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+	name = "OS";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 2;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+	name = "Rose";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 1;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name1, &rn);
+
+	name = "Math";
+	rn = create_data_row_node("name", STRING, &name);
+	year = 1;
+	rn2 = create_data_row_node("year", INT, &year);
+	rn.next_node = &rn2;
+	insert_row(f_handle, hashed_table_name2, &rn);
+
+	normalize_db_file(f_handle);
 }

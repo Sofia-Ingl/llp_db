@@ -6,6 +6,7 @@
 
 struct File_Handle {
 	FILE* file;
+	char* filename;
 };
 
 struct Table_Handle {

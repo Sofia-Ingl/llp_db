@@ -37,4 +37,7 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 	struct Table_Chain_Result_Set* rs,
 	uint32_t max_row_num);
 
+
+void normalize_db_file(struct File_Handle* f_handle);
+
 #endif
