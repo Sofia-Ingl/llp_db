@@ -909,5 +909,12 @@ void test_func4(struct File_Handle* f_handle) {
 	rn.next_node = &rn2;
 	insert_row(f_handle, hashed_table_name2, &rn);
 
-	normalize_db_file(f_handle);
+	struct File_Table_Schema_Metadata tab_info = get_table_schema_data(f_handle, hashed_table_name2);
+	printf("TAB INFO: %s\n", tab_info.table_name.value);
+	for (uint32_t i = 0; i < tab_info.columns_number; i++)
+	{
+		printf("%s\n", tab_info.columns_data[i].column_name.value);
+	}
+
+	//normalize_db_file(f_handle);
 }

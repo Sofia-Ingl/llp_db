@@ -40,4 +40,6 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 
 void normalize_db_file(struct File_Handle* f_handle);
 
+struct File_Table_Schema_Metadata get_table_schema_data(struct File_Handle* f_handle, struct String table_name);
+
 #endif

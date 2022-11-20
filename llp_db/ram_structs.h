@@ -48,6 +48,15 @@ struct Table_Chain_Result_Set {
 
 };
 
+/*to get schema data*/
+struct File_Table_Schema_Metadata {
+	uint8_t exists;
+	struct String table_name;
+	uint32_t columns_number;
+	struct Column_Info_Block* columns_data;
+	void* string_buffer;
+};
+
 
 
 #endif

@@ -2116,8 +2116,6 @@ struct Copy_Op_Result copy_table_to_db_file(struct File_Handle* dest, struct Fil
 
 void normalize_db_file(struct File_Handle* f_handle){
 
-	
-
 	struct File_Handle* new_f_handle = open_or_create_db_file("buffer_file");
 	struct File_Header src_file_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &src_file_header);
@@ -2137,5 +2135,61 @@ void normalize_db_file(struct File_Handle* f_handle){
 	close_db_file(new_f_handle);
 	remove(name);
 	rename("buffer_file", name);
+
+}
+
+
+void close_or_normalize_db_file(struct File_Handle* f_handle, uint8_t normalize) {
+	if (normalize == 1) {
+		normalize_db_file(f_handle);
+	}
+	else {
+		close_db_file(f_handle);
+	}
+}
+
+
+struct File_Table_Schema_Metadata get_table_schema_data(struct File_Handle* f_handle, struct String table_name) {
+	
+	struct Table_Handle tab_handle = find_table(f_handle, table_name);
+	if (tab_handle.exists == 0) {
+		printf("tab DOESNT exists, cannot insert!\n");
+		return (struct File_Table_Schema_Metadata ) {.exists = 0};
+	}
+
+	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
+	read_from_db_file(f_handle, tab_handle.table_metadata_offset, tab_handle.table_header.table_metadata_size, table_metadata_buffer);
+
+	uint32_t str_buff_sz = tab_handle.table_header.table_metadata_size - sizeof(struct Table_Header) - tab_handle.table_header.columns_number * sizeof(struct Column_Header);
+	void* string_buffer = malloc(str_buff_sz);
+
+	struct Column_Info_Block* columns_metadata = malloc(sizeof(struct Column_Info_Block) * tab_handle.table_header.columns_number);
+
+	uint32_t string_buffer_pos = 0;
+	uint32_t table_metadata_buffer_pos = sizeof(struct Table_Header) + tab_handle.table_header.table_name_metadata.length + 1;
+
+	for (uint32_t i = 0; i < tab_handle.table_header.columns_number; i++)
+	{
+		struct Column_Header* c_header = (struct Column_Header*)((uint8_t*)table_metadata_buffer + table_metadata_buffer_pos);
+		columns_metadata[i].column_type = c_header->data_type;
+		char* col_name = (char*)c_header + sizeof(struct Column_Header);
+		memcpy((uint8_t*)string_buffer + string_buffer_pos, col_name, c_header->column_name_metadata.length + 1);
+		columns_metadata[i].column_name.value = (uint8_t*)string_buffer + string_buffer_pos;
+		columns_metadata[i].column_name.hash = c_header->column_name_metadata.hash;
+		columns_metadata[i].column_name.length = c_header->column_name_metadata.length;
+
+		string_buffer_pos += c_header->column_name_metadata.length + 1;
+		table_metadata_buffer_pos += sizeof(struct Column_Header) + c_header->column_name_metadata.length + 1;
+	}
+
+	free(table_metadata_buffer);
+
+	return (struct File_Table_Schema_Metadata) {
+		.columns_data = columns_metadata,
+			.exists = 1,
+			.string_buffer = string_buffer,
+			.table_name = table_name,
+			.columns_number = tab_handle.table_header.columns_number
+	};
 
 }
