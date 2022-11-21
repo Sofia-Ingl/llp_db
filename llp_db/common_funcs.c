@@ -67,3 +67,36 @@ void free_table_row_bunch_struct(struct Table_Row_Bunch* trb) {
 	free(trb->row_starts_in_buffer);
 	free(trb);
 }
+
+
+
+
+struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type data_type, void* value_pointer) {
+	struct String hashed_column_name = inner_string_create(column_name);
+	union Data data;
+	if (data_type == INT) {
+		data.db_integer = *((int32_t*)value_pointer);
+	}
+	if (data_type == FLOAT) {
+		data.db_float = *((float*)value_pointer);
+	}
+	if (data_type == BOOL) {
+		data.db_float = *((enum Boolean*)value_pointer);
+	}
+	if (data_type == STRING) { 
+		char* string = *((char**)value_pointer);
+		struct String hashed_string = inner_string_create(string);
+		data.db_string = hashed_string;
+	}
+
+	struct Schema_Internals_Value schema_internal_value = (struct Schema_Internals_Value){
+		.data_type = data_type,
+		.value = data
+	};
+	return (struct Data_Row_Node) {
+		.column_name = hashed_column_name,
+			.value = schema_internal_value,
+			.next_node = NULL
+	};
+}
+

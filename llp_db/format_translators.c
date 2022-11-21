@@ -33,7 +33,7 @@ uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
 	/*uint32_t* result_buffer_position,*/
 	uint32_t result_buffer_position,
 	void* row) {
-	printf("add_row_to_result_buffer\n");
+	//printf("add_row_to_result_buffer\n");
 	void* new_result_row_start = (uint8_t*)result_buffer + result_buffer_position;
 
 	struct Row_Header* row_header = (struct Row_Header*)row;
@@ -142,7 +142,7 @@ uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
 
 /*TRANSFORMATION LAYER*/
 void* transform_table_metadata_into_db_format(struct String table_name, struct Table_Schema schema) {
-	printf("transform_table_metadata_into_db_format\n");
+	//printf("transform_table_metadata_into_db_format\n");
 	struct String_Metadata table_name_metadata = (struct String_Metadata){
 		.hash = table_name.hash,
 		.length = table_name.length
@@ -159,21 +159,15 @@ void* transform_table_metadata_into_db_format(struct String table_name, struct T
 	};
 
 	void* buffer = malloc(DB_MAX_TABLE_METADATA_SIZE);
-	//printf("%p buff ptr\n", buffer);
 	uint32_t buffer_size = DB_MAX_TABLE_METADATA_SIZE;
-	//printf("TABLE: %s ; len = %d; hash = %d\n", table_name.value, table_name.length, table_name.hash);
 	memcpy(buffer, &t_header, sizeof(struct Table_Header));
 	memcpy((uint8_t*)buffer + sizeof(struct Table_Header), table_name.value, table_name.length + 1); // +'\0'
 	uint32_t position = sizeof(struct Table_Header) + table_name.length + 1;
 	uint32_t header_num = 0;
 
-	//printf("tab end %d position\n", position);
-
-
 	for (uint32_t i = 0; i < schema.number_of_columns; i++)
 	{
 		struct Column_Info_Block current_column = schema.column_info[i];
-		//printf("col: %s ; len = %d; hash = %d\n", current_column.column_name.value, current_column.column_name.length, current_column.column_name.hash);
 		struct String_Metadata column_name_metadata = (struct String_Metadata){
 			.hash = current_column.column_name.hash,
 			.length = current_column.column_name.length
@@ -185,7 +179,7 @@ void* transform_table_metadata_into_db_format(struct String table_name, struct T
 
 		if (buffer_size < (position + sizeof(struct Column_Header) + current_column.column_name.length + 1)) {
 			/*realloc buffer using upper bound of avg col metadata sz*/
-			//printf("realloc\n");
+			
 			uint32_t avg_metadata_sz = (header_num == 0) ? buffer_size : (buffer_size / (header_num - 1)); // - current ; not consider tab metadat
 			uint32_t columns_left = schema.number_of_columns - header_num - 1; // - current
 			uint32_t curr_col_metadata_sz = sizeof(struct Column_Header) + current_column.column_name.length + 1;
@@ -197,7 +191,6 @@ void* transform_table_metadata_into_db_format(struct String table_name, struct T
 		position += sizeof(c_header);
 		memcpy((uint8_t*)buffer + position, current_column.column_name.value, current_column.column_name.length + 1);
 		position += current_column.column_name.length + 1;
-		//printf("%d position", position);
 
 		header_num++;
 
@@ -308,7 +301,7 @@ void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_R
 		current_row = current_row->next_node;
 	}
 	if (current_row != NULL) {
-		printf("EXTRA COLUMNS\n");
+		//printf("EXTRA COLUMNS\n");
 		free(buffer);
 		return NULL;
 	}
@@ -336,17 +329,9 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 		- sizeof(struct Column_Header) * number_of_columns
 		- trb->local_fetched_rows_num * sizeof(struct Row_Header)
 		+ sizeof(struct Data_Row_Node) * number_of_columns * trb->local_fetched_rows_num;
-	//uint32_t upper_bound_on_row_lists_buffer_sz = DB_MAX_ROW_SIZE;
-
-	/*printf("COLLLZ NUM\n");
-	for (size_t i = 0; i < 3; i++)
-	{
-		printf("%d\n", number_of_columns_from_each_table[i]);
-	}*/
-
+	
 	void* row_lists_buffer = malloc(upper_bound_on_row_lists_buffer_sz);
 
-	//struct Data_Row_Node** row_starts_in_buffer = malloc(sizeof(struct Data_Row_Node*) * trb->local_fetched_rows_num);
 	uint32_t* row_starts_in_buffer = malloc(sizeof(uint32_t) * trb->local_fetched_rows_num);
 	struct Table_Row_Lists_Bunch** row_tails = NULL;
 
@@ -377,13 +362,6 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 		}
 
 	}
-	
-	printf("trb->local_fetched_rows_num %d HHHHHHHHHHhaaaaaaaaaaa\n", trb->local_fetched_rows_num);
-	for (uint32_t i = 0; i < trb->local_fetched_rows_num; i++)
-	{
-		printf("row_starts_in_buffer[i] %d AAAAAAAAAAAAa\n", row_starts_in_buffer[i]);
-	}
-
 
 	struct Table_Row_Lists_Bunch* current_tab_row_lists = malloc(sizeof(struct Table_Row_Lists_Bunch));
 	current_tab_row_lists->row_lists_buffer = row_lists_buffer;

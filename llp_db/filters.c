@@ -62,7 +62,7 @@ uint8_t process_condition_relation(void* value_pos, struct Schema_Internals_Valu
 			return (strcmp(curr_row_str, target_value.value.db_string.value) > 0) ? 1 : 0;
 		}
 	}
-	printf("ERROR: _");
+	//printf("ERROR: _");
 	return -1;
 }
 
@@ -86,7 +86,7 @@ uint8_t check_simple_condition(void* table_metadata_buffer, void* row_buffer, st
 				//check data type
 
 				if (c_header->data_type != condition.right_part.data_type) {
-					printf("INVAID DATA TYPE in condition\n");
+					//printf("INVAID DATA TYPE in condition\n");
 					return -1;
 				}
 
@@ -108,7 +108,7 @@ uint8_t check_simple_condition(void* table_metadata_buffer, void* row_buffer, st
 		current_data_pos = current_data_pos + data_sz;
 	}
 
-	printf("INVAID TARGET COLUMN NAME in condition: %s\n", target_column.value);
+	//printf("INVAID TARGET COLUMN NAME in condition: %s\n", target_column.value);
 	return -1;
 
 }

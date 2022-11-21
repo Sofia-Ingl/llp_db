@@ -121,6 +121,8 @@ uint32_t hash(char* string, uint32_t st_len);
 
 struct String inner_string_create(char* str);
 
+struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type data_type, void* value_pointer);
+
 struct Condition create_simple_condition(char* column_name, struct Schema_Internals_Value val, enum Condition_Relation relation);
 
 struct Condition create_complex_condition(struct Condition* left, struct Condition* right, enum Condition_Chain_Relation relation);

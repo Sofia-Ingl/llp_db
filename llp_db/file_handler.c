@@ -45,7 +45,7 @@ uint32_t write_into_db_file(struct File_Handle* f_handle, uint32_t offset, uint3
 }
 
 uint32_t find_file_end(struct File_Handle* f_handle) {
-	printf("find_file_end\n");
+	//printf("find_file_end\n");
 	fseek(f_handle->file, 0, SEEK_END);
 	return ftell(f_handle->file);
 }
@@ -129,7 +129,7 @@ struct Table_Handle not_existing_table_handle() {
 
 
 struct Table_Handle find_table(struct File_Handle* f_handle, struct String table_name) {
-	printf("find_table\n");
+	//printf("find_table\n");
 	struct File_Header file_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
 	if (read_res < sizeof(struct File_Header)) {
@@ -151,20 +151,18 @@ struct Table_Handle find_table(struct File_Handle* f_handle, struct String table
 		uint32_t right_bound_table_header_offset = current_table_header_offset + sizeof(struct Table_Header);
 
 		if ((buffer_left_offset < current_table_header_offset) && (right_bound_table_header_offset < buffer_right_offset)) {
-			printf("BUFFER\n");
+			
 			/*current th already inside buffer => dont have to read data from files*/
 			uint32_t new_table_header_buffer_position = current_table_header_offset - buffer_left_offset;
 			table_header = (struct Table_Header*)((uint8_t*)buffer + new_table_header_buffer_position);
 
 		}
 		else {
-			printf("BUFFER MISS\n");
 			uint32_t read_result = read_from_db_file(f_handle, current_table_header_offset, DB_MAX_TABLE_METADATA_SIZE, buffer);
 			buffer_left_offset = current_table_header_offset;
 			buffer_right_offset = current_table_header_offset + read_result;
 			table_header = (struct Table_Header*)buffer;
 		}
-		printf("tab NAME: %s\n", (char*)((uint8_t*)table_header + sizeof(struct Table_Header)));
 		if (table_header->table_name_metadata.hash == table_name.hash) {
 			char* current_table_name = (uint8_t*)table_header + sizeof(struct Table_Header);
 			if (strcmp(current_table_name, table_name.value) == 0) {
@@ -186,7 +184,7 @@ struct Table_Handle find_table(struct File_Handle* f_handle, struct String table
 
 /*POTENTIAL BUG, NEEDS TESTING*/
 uint32_t find_free_space(struct File_Handle* f_handle, uint32_t size) {
-	printf("find_free_space\n");
+	//printf("find_free_space\n");
 	struct File_Header f_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
 	if (read_res < sizeof(struct File_Header)) {
@@ -232,14 +230,12 @@ uint32_t find_free_space(struct File_Handle* f_handle, uint32_t size) {
 
 
 	if (found == 1) {
-		printf("found\n");
 		if (gap_header->gap_size >= (size + minimal_gap_size)) {
 			// split
 			gap_header->gap_size = gap_header->gap_size - size;
 			write_into_db_file(f_handle, curr_gap_offset, sizeof(struct Gap_Header), &gap_header);
 			/*error handle*/
 			uint32_t free_space_offset = curr_gap_offset + gap_header->gap_size;
-			printf("free space offset: %d\n", free_space_offset);
 			free(buffer);
 			return free_space_offset;
 		}
@@ -296,7 +292,6 @@ uint32_t find_free_space(struct File_Handle* f_handle, uint32_t size) {
 		}
 		
 	}
-	printf("not found\n");
 	free(buffer);
 	return -1;
 }
@@ -304,7 +299,7 @@ uint32_t find_free_space(struct File_Handle* f_handle, uint32_t size) {
 
 
 uint32_t add_table_to_f_header_and_update_list(struct File_Handle* f_handle, uint32_t table_metadata_offset) {
-	printf("add_table_to_f_header_and_update_list\n");
+	//printf("add_table_to_f_header_and_update_list\n");
 	struct File_Header file_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
 	if (read_res < sizeof(struct File_Header)) {
@@ -314,11 +309,9 @@ uint32_t add_table_to_f_header_and_update_list(struct File_Handle* f_handle, uin
 
 	uint32_t write_res;
 	if (file_header.tables_number == 0) {
-		printf("no tabs\n");
 		file_header.first_table_offset = table_metadata_offset;
 	}
 	else {
-		printf("at least 1 tab in file\n");
 		struct Table_Header prev_t_header;
 		read_from_db_file(f_handle, file_header.last_table_offset, sizeof(struct Table_Header), &prev_t_header);
 		prev_t_header.next_table_header_offset = table_metadata_offset;
@@ -705,10 +698,10 @@ void* create_updated_row(void* tab_metadata_buffer, void* row, struct Update_Set
 
 /*END INSERTION POLICY*/
 int32_t update_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, struct Data_Row_Node* new_data) {
-	printf("Update_rows \n");
+	//printf("Update_rows \n");
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
-		printf("tab DOESNT exists, cannot update rows!\n");
+		//printf("tab DOESNT exists, cannot update rows!\n");
 		return -1;
 	}
 	void* table_metadata_buffer = malloc(tab_handle.table_header.table_metadata_size);
@@ -716,7 +709,7 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 
 	struct Update_Set prepared_updates = prepare_updates(table_metadata_buffer, new_data);
 	if (prepared_updates.updated_columns_map == NULL) {
-		printf("invalid update data\n");
+		//printf("invalid update data\n");
 		free(table_metadata_buffer);
 		return -1;
 	}
@@ -736,7 +729,6 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 	while (current_row_offset != -1) {
 
 		/*FETCH CURRENT ROW*/
-		printf("current row offset %d\n", current_row_offset);
 		uint32_t row_sz;
 		uint32_t row_header_pos;
 
@@ -812,7 +804,6 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 				// have to write to another place (end of file)
 				// create new gap
 				memset((uint8_t*)buffer + row_header_pos, 0, row_sz);
-				printf("last_gap_offset %x\n", last_gap_offset);
 				struct Gap_Header* g_header = (struct Gap_Header*)((uint8_t*)buffer + row_header_pos);
 				g_header->gap_size = row_sz;
 				g_header->prev_gap_header_offset = last_gap_offset;
@@ -837,7 +828,6 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 						&last_gap_sz, 0);
 					struct Gap_Header* last_gap_header = (struct Gap_Header*)((uint8_t*)buffer + last_gap_header_pos);
 					last_gap_header->next_gap_header_offset = new_gap_offset;
-					printf("last_gap_header->next_gap_header_offset  %x\n", last_gap_header->next_gap_header_offset);
 				}
 				last_gap_offset = new_gap_offset;
 
@@ -904,7 +894,6 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 
 	if (first_gap_offset != -1) {
 		/*have to change gap list cause of new gaps*/
-		printf("we have created gaps\n");
 		struct File_Header f_header;
 		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
 		if (f_header.first_gap_offset == -1) {
@@ -1303,10 +1292,7 @@ struct Table_Row_Bunch* table_chain_single_recursive_select(struct File_Handle* 
 
 	if (current_row_offset == -1) {
 		//tab is empty
-		printf("tab tail is empty!\n");
-		//struct Table_Row_Bunch* res = malloc(sizeof(struct Table_Row_Bunch));
-		//res->fetched_rows_num = 0;
-		//return res;
+		//printf("tab tail is empty!\n");
 		return NULL;
 	}
 
@@ -1411,7 +1397,7 @@ struct Table_Row_Bunch* table_chain_single_recursive_select(struct File_Handle* 
 
 				}
 
-				/*BUG*/
+
 				if (result_buffer_sz < (result_buffer_position + row_sz)) {
 					result_buffer_sz = result_buffer_position + row_sz + result_buffer_sz / 2;
 					result_buffer = realloc(result_buffer, result_buffer_sz);
@@ -1498,7 +1484,7 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 	struct String** column_names,
 	uint32_t max_row_num) {
 	
-	printf("table_chain_select\n");
+	//printf("table_chain_select\n");
 
 	struct Table_Handle* tab_handle_array = malloc(sizeof(struct Table_Handle) * number_of_joined_tables);
 
@@ -1515,8 +1501,8 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 		tab_handle_array[i] = find_table(f_handle, table_names[i]);
 		if (tab_handle_array[i].exists == 0) {
 			
-			printf("table %s doesnt exist\n", table_names[i].value);
-			printf("join select failed\n");
+			//printf("table %s doesnt exist\n", table_names[i].value);
+			//printf("join select failed\n");
 			free(tab_handle_array);
 			free(cursor_offsets);
 			for (uint32_t j = 0; j < number_of_joined_tables; j++)
@@ -1528,7 +1514,7 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 		}
 		cursor_offsets[i] = tab_handle_array[i].table_header.first_row_offset;
 		if (cursor_offsets[i] == -1) {
-			printf("one of the tables is empty -> empty result\n");
+			//printf("one of the tables is empty -> empty result\n");
 			free(tab_handle_array);
 			free(cursor_offsets);
 			for (uint32_t j = 0; j < number_of_joined_tables; j++)
@@ -1571,7 +1557,6 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 
 	struct Table_Chain_Result_Set* rs = malloc(sizeof(struct Table_Chain_Result_Set));
 	rs->rows_num = fetched_rows_num;
-	//rs->joined_table = joined_table;
 	rs->number_of_joined_tables = number_of_joined_tables;
 	rs->join_conditions = join_conditions;
 	rs->table_names = table_names;
@@ -1789,11 +1774,12 @@ struct Cleared_Row_List clear_row_list_by_condition(struct File_Handle* f_handle
 
 
 int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
-	printf("delete_table\n");
+	
+	//printf("delete_table\n");
 
 	struct Table_Handle t_handle = find_table(f_handle, table_name);
 	if (t_handle.exists == 0) {
-		printf("tab doesnt exist\n");
+		//printf("tab doesnt exist\n");
 		return -1;
 	}
 
@@ -1828,12 +1814,9 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 	/*clear rows*/
 	struct Cleared_Row_List crow_list = clear_row_list_by_condition(f_handle, NULL, t_handle.table_header.first_row_offset, NULL);
 
-	printf("new gap list: first %d; last %d\n", crow_list.first_gap_offset, crow_list.last_gap_offset);
-
 	/*clear metadata*/
 	void* buffer = malloc(t_handle.table_header.table_metadata_size);
 	memset(buffer, 0, t_handle.table_header.table_metadata_size);
-	printf("t_handle.table_header.table_metadata_size %d\n", t_handle.table_header.table_metadata_size);
 
 	struct Gap_Header* g_header = (struct Gap_Header*)buffer;
 	g_header->gap_size = t_handle.table_header.table_metadata_size;
@@ -1846,11 +1829,9 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name) {
 		read_from_db_file(f_handle, crow_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
 
 		first_new_gap_header.prev_gap_header_offset = t_handle.table_metadata_offset;
-		printf("new_gap_list.first_gap_offset %d \n", crow_list.first_gap_offset);
 		write_into_db_file(f_handle, crow_list.first_gap_offset, sizeof(struct Gap_Header), &first_new_gap_header);
 	}
 	else {
-		printf("no rows were in table AAAAAAAAAA\n");
 		crow_list.last_gap_offset = t_handle.table_metadata_offset;
 	}
 
@@ -1894,7 +1875,7 @@ int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, stru
 
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
-		printf("tab DOESNT exists, cannot delete from!\n");
+		//printf("tab DOESNT exists, cannot delete from!\n");
 		return -1;
 	}
 
@@ -1923,7 +1904,7 @@ int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, stru
 
 	if (cleared_row_list.first_gap_offset != -1) {
 		/*have to change gap list cause of new gaps*/
-		printf("we have deleted rows\n");
+		//printf("we have deleted rows\n");
 		struct File_Header f_header;
 		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
 		if (f_header.first_gap_offset == -1) {
@@ -2153,7 +2134,7 @@ struct File_Table_Schema_Metadata get_table_schema_data(struct File_Handle* f_ha
 	
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
-		printf("tab DOESNT exists, cannot insert!\n");
+		//printf("tab DOESNT exists, cannot insert!\n");
 		return (struct File_Table_Schema_Metadata ) {.exists = 0};
 	}
 

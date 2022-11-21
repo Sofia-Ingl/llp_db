@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "common_structs.h"
 
+#define DEFAULT_ROW_NUM_IN_SELECT_QUERY 50
+
 enum Request_Type {
 	SELECT,
 	UPDATE,
@@ -15,10 +17,9 @@ enum Request_Type {
 /*JOIN SELECT*/
 
 struct Joined_Table_Select {
-	int8_t all_columns;
+	//int8_t all_columns;
 	struct Joined_Table joined_table;
-	int32_t* number_of_columns_from_each_table;
-	//struct Extended_Column_Name* column_names;
+	uint32_t* number_of_columns_from_each_table;
 	struct String** column_names; // array with len == joined_tables_num
 	struct Condition** conditions; // array with len == joined_tables_num
 };
@@ -26,9 +27,8 @@ struct Joined_Table_Select {
 /*REQUESTS*/
 
 struct Single_Table_Select {
-	int8_t all_columns;
 	struct String table_name;
-	int32_t number_of_columns;
+	uint32_t number_of_columns; // -1 == all cols
 	struct String* column_names;
 	struct Condition* condition;
 };
@@ -40,21 +40,18 @@ union Select_Union {
 
 struct Select {
 	uint8_t is_single_table_select;
-	//int8_t all_columns;
-	//int32_t number_of_columns;
-	//struct Condition condition;
 	union Select_Union query_details;
 };
 
 struct Update {
 	struct String table_name;
 	struct Data_Row_Node* new_data;
-	struct Condition condition;
+	struct Condition* condition;
 };
 
 struct Delete {
 	struct String table_name;
-	struct Condition condition;
+	struct Condition* condition;
 };
 
 struct Insert {
@@ -73,7 +70,6 @@ union Request_Details {
 };
 
 struct Request {
-	//struct DB_String table_name;
 	enum Request_Type request_type;
 	union Request_Details request_details;
 };

@@ -7,6 +7,9 @@
     <Filter Include="ram">
       <UniqueIdentifier>{9341266e-b9b6-4e89-b698-490e936b2992}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{c0ec7385-7a22-4aca-a86d-3aaa56334eb6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_handler.c">
@@ -25,6 +28,12 @@
     </ClCompile>
     <ClCompile Include="format_translators.c">
       <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="printers.c">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests.c">
+      <Filter>tests</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +63,9 @@
     </ClInclude>
     <ClInclude Include="file_handler_inner_structs.h">
       <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="printers.h">
+      <Filter>tests</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
