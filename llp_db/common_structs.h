@@ -129,4 +129,6 @@ struct Condition create_complex_condition(struct Condition* left, struct Conditi
 
 void free_table_row_bunch_struct(struct Table_Row_Bunch* trb);
 
+void free_table_row_bunch_struct_list(struct Table_Row_Lists_Bunch* trb);
+
 #endif

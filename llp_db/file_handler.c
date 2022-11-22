@@ -1245,7 +1245,7 @@ void get_value_of_column(struct Table_Handle* tab_handle,
 					memcpy(str, ((uint8_t*)row + column_val_offset_in_row), str_metadata->length + 1)*/
 					place_to_write_col_val->value.db_string.hash = str_metadata->hash;
 					place_to_write_col_val->value.db_string.length = str_metadata->length;
-					place_to_write_col_val->value.db_string.value = (uint8_t*)row + column_val_offset_in_row;
+					place_to_write_col_val->value.db_string.value = (uint8_t*)row + column_val_offset_in_row + sizeof(struct String_Metadata);
 				}
 				if (c_header->data_type == INT) {
 					
@@ -1545,6 +1545,8 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 		0,
 		max_row_num);
 
+	// if raw_rows_chain == NULL - ??
+
 	uint32_t fetched_rows_num = raw_rows_chain->total_fetched_rows_num;
 
 	struct Table_Row_Lists_Bunch* rows_chain = transform_row_bunch_into_ram_format(tab_handle_array, table_metadata_buffers, raw_rows_chain,
@@ -1574,24 +1576,7 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 
 
 
-/*used in join result sets*/
-void free_table_row_bunch_struct_list(struct Table_Row_Lists_Bunch * trb) {
-	
-	if (trb != NULL) {
 
-		if (trb->row_tails != NULL) {
-			for (uint32_t i = 0; i < trb->local_rows_num; i++)
-			{
-				free_table_row_bunch_struct_list(trb->row_tails[i]);
-			}
-		}
-
-		free(trb->row_lists_buffer);
-		free(trb->row_starts_in_buffer);
-		free(trb->row_tails);
-		free(trb);
-	}
-}
 
 
 struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle,
@@ -2094,7 +2079,6 @@ struct Copy_Op_Result copy_table_to_db_file(struct File_Handle* dest, struct Fil
 }
 
 
-
 void normalize_db_file(struct File_Handle* f_handle){
 
 	struct File_Handle* new_f_handle = open_or_create_db_file("buffer_file");
@@ -2118,6 +2102,8 @@ void normalize_db_file(struct File_Handle* f_handle){
 	rename("buffer_file", name);
 
 }
+
+
 
 
 void close_or_normalize_db_file(struct File_Handle* f_handle, uint8_t normalize) {

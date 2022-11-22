@@ -71,6 +71,27 @@ void free_table_row_bunch_struct(struct Table_Row_Bunch* trb) {
 
 
 
+/*used in join result sets*/
+void free_table_row_bunch_struct_list(struct Table_Row_Lists_Bunch* trb) {
+
+	if (trb != NULL) {
+
+		if (trb->row_tails != NULL) {
+			for (uint32_t i = 0; i < trb->local_rows_num; i++)
+			{
+				free_table_row_bunch_struct_list(trb->row_tails[i]);
+			}
+		}
+
+		free(trb->row_lists_buffer);
+		free(trb->row_starts_in_buffer);
+		free(trb->row_tails);
+		free(trb);
+	}
+}
+
+
+
 struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type data_type, void* value_pointer) {
 	struct String hashed_column_name = inner_string_create(column_name);
 	union Data data;
@@ -81,7 +102,7 @@ struct Data_Row_Node create_data_row_node(char* column_name, enum DB_Data_Type d
 		data.db_float = *((float*)value_pointer);
 	}
 	if (data_type == BOOL) {
-		data.db_float = *((enum Boolean*)value_pointer);
+		data.db_boolean = *((enum Boolean*)value_pointer);
 	}
 	if (data_type == STRING) { 
 		char* string = *((char**)value_pointer);

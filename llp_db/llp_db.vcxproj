@@ -103,6 +103,7 @@
     <ClCompile Include="Makefile" />
     <ClCompile Include="printers.c" />
     <ClCompile Include="query_handler.c" />
+    <ClCompile Include="ram_structs.c" />
     <ClCompile Include="tests.c" />
   </ItemGroup>
   <ItemGroup>
@@ -116,6 +117,7 @@
     <ClInclude Include="query_handler.h" />
     <ClInclude Include="ram_structs.h" />
     <ClInclude Include="request_structs.h" />
+    <ClInclude Include="tests.h" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

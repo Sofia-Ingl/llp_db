@@ -35,6 +35,9 @@
     <ClCompile Include="tests.c">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="ram_structs.c">
+      <Filter>ram</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="file_handler.h">
@@ -65,6 +68,9 @@
       <Filter>file</Filter>
     </ClInclude>
     <ClInclude Include="printers.h">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="tests.h">
       <Filter>tests</Filter>
     </ClInclude>
   </ItemGroup>

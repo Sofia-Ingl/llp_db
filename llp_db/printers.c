@@ -3,16 +3,16 @@
 void print_table_row(struct Data_Row_Node* dr) {
 	while (dr != NULL) {
 		if (dr->value.data_type == STRING) {
-			printf("%s	", dr->value.value.db_string.value);
+			printf("%s   ", dr->value.value.db_string.value);
 		}
 		if (dr->value.data_type == INT) {
-			printf("%d	", dr->value.value.db_integer);
+			printf("%d   ", dr->value.value.db_integer);
 		}
 		if (dr->value.data_type == FLOAT) {
-			printf("%f	", dr->value.value.db_float);
+			printf("%f   ", dr->value.value.db_float);
 		}
 		if (dr->value.data_type == BOOL) {
-			printf("%d	", dr->value.value.db_boolean);
+			printf("%d   ", dr->value.value.db_boolean);
 		}
 		dr = dr->next_node;
 	}
@@ -21,7 +21,7 @@ void print_table_row(struct Data_Row_Node* dr) {
 
 void print_table_column_names(struct Data_Row_Node* dr, struct String tab_name) {
 	while (dr != NULL) {
-		printf("%s(%s)	", dr->column_name.value, tab_name.value);
+		printf("%s(%s)   ", dr->column_name.value, tab_name.value);
 		dr = dr->next_node;
 	}
 }
