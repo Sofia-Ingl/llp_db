@@ -1,5 +1,6 @@
 #include "query_handler.h"
 #include "printers.h"
+#include "file_handler.h"
 
 void create_student_table(struct File_Handle* f_handle) {
 	struct Table_Schema stud_schema = table_schema_init();
@@ -375,6 +376,11 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 }
 
 
+void process_student_inserts_from_text_format() {
+
+}
+
+
 //struct Joined_Table {
 //	int32_t number_of_joined_tables;
 //	struct String* table_names;
@@ -695,54 +701,16 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 //	struct String hashed_table_name3 = inner_string_create("group");
 //
 //	g_number = 0;
-//	rn3 = create_data_row_node("group_number", INT, &g_number);
-//	insert_row(f_handle, hashed_table_name1, &rn3);
+//	rn3 = create_data_row_node("number", INT, &g_number);
+//	insert_row(f_handle, hashed_table_name3, &rn3);
 //
 //	g_number = 2;
-//	rn3 = create_data_row_node("group_number", INT, &g_number);
-//	insert_row(f_handle, hashed_table_name1, &rn3);
+//	rn3 = create_data_row_node("number", INT, &g_number);
+//	insert_row(f_handle, hashed_table_name3, &rn3);
 //
 //	g_number = 1;
-//	rn3 = create_data_row_node("group_number", INT, &g_number);
-//	insert_row(f_handle, hashed_table_name1, &rn3);
-//
-//
-//	//struct Result_Set* rs = single_table_select(f_handle,
-//	//	hashed_table_name2,
-//	//	NULL,
-//	//	-1, // -1 => all cols
-//	//	NULL,
-//	//	10);
-//
-//	//printf("COURSE RESULT SET:\n");
-//	//printf(" rs.rows_num: %d\n", rs->rows_num);
-//	//printf(" rs.whole_table: %d\n", rs->whole_table);
-//	//printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
-//	//printf("ROWS:\n");
-//	//for (uint32_t i = 0; i < rs->rows_num; i++)
-//	//{
-//	//	print_table_row(rs->row_pointers[i]);
-//	//}
-//
-//
-//	//rs = single_table_select(f_handle,
-//	//	hashed_table_name1,
-//	//	NULL,
-//	//	-1, // -1 => all cols
-//	//	NULL,
-//	//	10);
-//
-//	//printf("STUDENT RESULT SET:\n");
-//	//printf(" rs.rows_num: %d\n", rs->rows_num);
-//	//printf(" rs.whole_table: %d\n", rs->whole_table);
-//	//printf(" rs.next_table_row_offset: %d\n", rs->next_table_row_offset);
-//	//printf("ROWS:\n");
-//	//for (uint32_t i = 0; i < rs->rows_num; i++)
-//	//{
-//	//	print_table_row(rs->row_pointers[i]);
-//	//}
-//
-//
+//	rn3 = create_data_row_node("number", INT, &g_number);
+//	insert_row(f_handle, hashed_table_name3, &rn3);
 //
 //
 //	uint32_t num_of_cols = -1;
@@ -752,11 +720,11 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 //		&condit, &num_of_cols, &col_nams, 5);
 //	printf("As single select\n");
 //	print_joined_table_rows(jrs);
-//	delete_table(f_handle, hashed_table_name2);
+//	delete_rows(f_handle, hashed_table_name2, NULL, 1);
 //	jrs = table_chain_select(f_handle, 1, &hashed_table_name2, NULL,
 //		&condit, &num_of_cols, &col_nams, 5);
 //	print_joined_table_rows(jrs);
-//	printf("%d rnum\n", delete_rows(f_handle, hashed_table_name1, NULL));
+//	printf("%d rnum\n", delete_rows(f_handle, hashed_table_name1, NULL, 1));
 //	jrs = table_chain_select(f_handle, 1, &hashed_table_name1, NULL,
 //		&condit, &num_of_cols, &col_nams, 5);
 //	print_joined_table_rows(jrs);

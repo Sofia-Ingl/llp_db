@@ -93,6 +93,13 @@
     <RemoteReBuildCommandLine>make rebuild</RemoteReBuildCommandLine>
     <RemoteCleanCommandLine>make clean</RemoteCleanCommandLine>
     <RemoteBuildOutputs>/home/sofia/projects/llp_db/app</RemoteBuildOutputs>
+    <BuildCommandLine>
+    </BuildCommandLine>
+    <ReBuildCommandLine>
+    </ReBuildCommandLine>
+    <CleanCommandLine>
+    </CleanCommandLine>
+    <IncrementalBuild>false</IncrementalBuild>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="common_funcs.c" />

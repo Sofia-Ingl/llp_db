@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
-
+#define DEFAULT_CRITICAL_GAP_RATE 0.2
 
 struct Table_Schema table_schema_init() {
 	void* column_metadata_array = malloc(sizeof(struct Column_Info_Block) * 10);
@@ -49,7 +49,7 @@ int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum 
 
 
 struct File_Handle* file_open_or_create(char* filename) {
-	struct File_Handle* file_handle = open_or_create_db_file(filename);
+	struct File_Handle* file_handle = open_or_create_db_file(filename, DEFAULT_CRITICAL_GAP_RATE);
 	// errors handle
 	return file_handle;
 }
@@ -64,21 +64,21 @@ int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table
 	create_table(f_handle, hashed_tab_name, schema);
 }
 
-int8_t table_delete(struct File_Handle* f_handle, char* table_name) {
+int8_t table_delete(struct File_Handle* f_handle, char* table_name, uint8_t allow_normalization) {
 	struct String hashed_tab_name = inner_string_create(table_name);
-	delete_table(f_handle, hashed_tab_name);
+	delete_table(f_handle, hashed_tab_name, allow_normalization);
 }
 
 int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command) {
 	return insert_row(f_handle, insert_command.table_name, insert_command.new_data);
 }
 
-int8_t process_update(struct File_Handle* f_handle, struct Update update_command) {
-	return update_rows(f_handle, update_command.table_name, update_command.condition, update_command.new_data);
+int8_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization) {
+	return update_rows(f_handle, update_command.table_name, update_command.condition, update_command.new_data, allow_normalization);
 }
 
-int8_t process_delete(struct File_Handle* f_handle, struct Delete delete_command) {
-	return delete_rows(f_handle, delete_command.table_name, delete_command.condition);
+int8_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization) {
+	return delete_rows(f_handle, delete_command.table_name, delete_command.condition, allow_normalization);
 }
 
 struct Table_Chain_Result_Set* process_select(struct File_Handle* f_handle, struct Select select_command) {

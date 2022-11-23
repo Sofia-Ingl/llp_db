@@ -7,6 +7,8 @@ void prepare_short_test_schema(struct File_Handle* fh);
 
 void test_select_on_short_test_schema(struct File_Handle* fh);
 
+//void test_func2(struct File_Handle* f_handle);
+
 //void create_student_table(struct File_Handle* f_handle);
 //
 //void insert_into_student_table(struct File_Handle* f_handle);

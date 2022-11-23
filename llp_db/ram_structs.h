@@ -34,7 +34,7 @@ struct Table_Schema {
 struct Table_Chain_Result_Set {
 
 	uint32_t rows_num; // if rows_num < max_row_num -> EOF reached
-	//uint8_t has_next; 
+	uint8_t probably_has_next;
 	int32_t number_of_joined_tables;
 	struct String* table_names;
 	struct Join_Condition* join_conditions;

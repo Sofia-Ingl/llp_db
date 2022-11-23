@@ -17,6 +17,7 @@ struct __attribute__((packed)) File_Header {
 	uint16_t signature;
 	uint16_t tables_number;
 	//uint16_t gaps_number;
+	uint32_t gap_sz;
 	uint32_t first_gap_offset;
 	uint32_t last_gap_offset;
 	uint32_t first_table_offset;

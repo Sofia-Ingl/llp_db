@@ -26,8 +26,10 @@ int main(int argc, char* argv[]) {
 
 		struct File_Handle* fh = file_open_or_create(argv[1]);
 
-		prepare_short_test_schema(fh);
-		test_select_on_short_test_schema(fh);
+		//prepare_short_test_schema(fh);
+		//test_select_on_short_test_schema(fh);
+
+		//test_func2(fh);
 
 		/*create_student_table(fh);
 		create_group_table(fh);
