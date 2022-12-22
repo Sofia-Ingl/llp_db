@@ -439,12 +439,21 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 		.is_single_table_select = 1,
 		.query_details = su
 	};
+
+	struct Schema_Internals_Value del_val;
+	del_val.data_type = INT;
+	del_val.value.db_integer = 2;
+	struct Condition del_cond = create_simple_condition("col1", del_val, EQUALS);
+	struct Delete del = (struct Delete) {
+		.table_name = inner_string_create("tab1"),
+		.condition = &del_cond
+	};
 	for (size_t i = 0; i < 10; i++)
 	{
 		clock_t begin = clock();
-		for (size_t i = 0; i < 10000; i++)
+		for (size_t j = 0; j < 10000; j++)
 		{
-			int val = i % 10;
+			int val = j % 10;
 			struct Data_Row_Node rn0 = create_data_row_node("col1", INT, &val);
 			ins.new_data = &rn0;
 			process_insert(f_handle, ins);
@@ -459,6 +468,12 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 		free(rs);
 		end = clock();
 		//printf("select time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		//begin = clock();
+		//int del_num = process_delete(f_handle, del, 0);
+		////printf("deleted %d \n", del_num);
+		//end = clock();
+		//printf("delete time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
 	}
 	
 	

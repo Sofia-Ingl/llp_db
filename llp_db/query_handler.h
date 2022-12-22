@@ -16,9 +16,9 @@ int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum 
 int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table_Schema schema);
 int8_t table_delete(struct File_Handle* f_handle, char* table_name, uint8_t allow_normalization);
 
-int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command);
-int8_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization);
-int8_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization);
+int32_t process_insert(struct File_Handle* f_handle, struct Insert insert_command);
+int32_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization);
+int32_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization);
 
 struct Table_Chain_Result_Set* process_select_with_row_num(struct File_Handle* f_handle, struct Select select_command, uint32_t max_row_num);
 struct Table_Chain_Result_Set* process_select(struct File_Handle* f_handle, struct Select select_command);

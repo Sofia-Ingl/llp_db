@@ -69,15 +69,15 @@ int8_t table_delete(struct File_Handle* f_handle, char* table_name, uint8_t allo
 	delete_table(f_handle, hashed_tab_name, allow_normalization);
 }
 
-int8_t process_insert(struct File_Handle* f_handle, struct Insert insert_command) {
+int32_t process_insert(struct File_Handle* f_handle, struct Insert insert_command) {
 	return insert_row(f_handle, insert_command.table_name, insert_command.new_data);
 }
 
-int8_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization) {
+int32_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization) {
 	return update_rows(f_handle, update_command.table_name, update_command.condition, update_command.new_data, allow_normalization);
 }
 
-int8_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization) {
+int32_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization) {
 	return delete_rows(f_handle, delete_command.table_name, delete_command.condition, allow_normalization);
 }
 

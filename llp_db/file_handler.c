@@ -418,7 +418,7 @@ struct Copy_Op_Result copy_table_to_db_file(struct File_Handle* dest, struct Fil
 
 
 void normalize_db_file(struct File_Handle* f_handle, uint8_t preserve_f_handle) {
-
+	printf("norm\n");
 	struct File_Handle* new_f_handle = open_or_create_db_file("buffer_file", f_handle->critical_gap_rate);
 	struct File_Header src_file_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &src_file_header);
@@ -1641,7 +1641,7 @@ struct Cleared_Row_List clear_row_list_by_condition(struct File_Handle* f_handle
 
 		if (!row_suitable) {
 			/*DO NOT DELETE*/
-			r_header->prev_row_header_offset = last_preserved_row_offset;
+			
 			if (first_preserved_row_offset == -1) {
 				first_preserved_row_offset = current_row_offset;
 			}
@@ -1665,6 +1665,7 @@ struct Cleared_Row_List clear_row_list_by_condition(struct File_Handle* f_handle
 
 
 			}
+			r_header->prev_row_header_offset = last_preserved_row_offset;
 			last_preserved_row_offset = current_row_offset;
 
 		}
