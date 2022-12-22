@@ -74,35 +74,37 @@ void reset_row_arr_pos(struct Table_Row_Lists_Bunch** trlb_cur_row_list, uint32_
 
 void print_joined_table_rows(struct Table_Chain_Result_Set* rs) {
 
-	if (rs == NULL) {
+	if ((rs == NULL)||(rs->rows_num == 0)) {
 		printf("EMPTY JOIN RESULT SET\n");
 		return;
 	}
+	else {
+		struct Table_Row_Lists_Bunch** trlb_cur_row_list = malloc(rs->number_of_joined_tables * sizeof(struct Table_Row_Lists_Bunch*));
+		uint32_t* row_positions = malloc(rs->number_of_joined_tables * sizeof(uint32_t));
 
-	struct Table_Row_Lists_Bunch** trlb_cur_row_list = malloc(rs->number_of_joined_tables * sizeof(struct Table_Row_Lists_Bunch*));
-	uint32_t* row_positions = malloc(rs->number_of_joined_tables * sizeof(uint32_t));
+		struct Table_Row_Lists_Bunch* trlb = rs->rows_chain;
+		for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
+		{
+			trlb_cur_row_list[i] = trlb;
+			trlb = (trlb->row_tails == NULL) ? NULL : trlb->row_tails[0];
+			row_positions[i] = 0;
+		}
 
-	struct Table_Row_Lists_Bunch* trlb = rs->rows_chain;
-	for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
-	{
-		trlb_cur_row_list[i] = trlb;
-		trlb = (trlb->row_tails == NULL) ? NULL : trlb->row_tails[0];
-		row_positions[i] = 0;
+
+		printf("JOINED TABLE\n");
+		print_joined_table_column_names(trlb_cur_row_list, row_positions, rs->number_of_joined_tables, rs->table_names);
+		for (uint32_t i = 0; i < rs->rows_num; i++)
+		{
+			//print_joined_table_row(arr, rs->joined_table.number_of_joined_tables);
+			print_joined_table_row(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
+			reset_row_arr_pos(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
+		}
+
+
+		free(trlb_cur_row_list);
+		free(row_positions);
 	}
 
-
-	printf("JOINED TABLE\n");
-	print_joined_table_column_names(trlb_cur_row_list, row_positions, rs->number_of_joined_tables, rs->table_names);
-	for (uint32_t i = 0; i < rs->rows_num; i++)
-	{
-		//print_joined_table_row(arr, rs->joined_table.number_of_joined_tables);
-		print_joined_table_row(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
-		reset_row_arr_pos(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
-	}
-
-
-	free(trlb_cur_row_list);
-	free(row_positions);
 }
 
 

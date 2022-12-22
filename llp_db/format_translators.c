@@ -325,9 +325,9 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 	uint32_t upper_bound_on_row_lists_buffer_sz = 
 		trb->row_sz_sum
 		+ metadata_sz
-		- sizeof(struct Table_Header)
-		- sizeof(struct Column_Header) * number_of_columns
-		- trb->local_fetched_rows_num * sizeof(struct Row_Header)
+		//- sizeof(struct Table_Header)
+		//- sizeof(struct Column_Header) * number_of_columns
+		//- trb->local_fetched_rows_num * sizeof(struct Row_Header)
 		+ sizeof(struct Data_Row_Node) * number_of_columns * trb->local_fetched_rows_num;
 	
 	void* row_lists_buffer = malloc(upper_bound_on_row_lists_buffer_sz);

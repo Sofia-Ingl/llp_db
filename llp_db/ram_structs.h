@@ -57,6 +57,6 @@ struct File_Table_Schema_Metadata {
 	void* string_buffer;
 };
 
-void free_table_chain_result_set_with_all_fields(struct Table_Chain_Result_Set* rs);
+void free_table_chain_result_set_inner_fields(struct Table_Chain_Result_Set* rs);
 
 #endif

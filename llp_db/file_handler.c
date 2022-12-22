@@ -137,7 +137,7 @@ struct Table_Handle not_existing_table_handle() {
 
 
 void flush_buffer(struct File_Handle* f_handle, uint32_t buffer_left_offset, uint32_t buffer_right_offset, void* buffer) {
-	printf("flush buffer\n");
+	//printf("flush buffer\n");
 	if (buffer_right_offset - buffer_left_offset > 0) {
 		write_into_db_file(f_handle, buffer_left_offset, buffer_right_offset - buffer_left_offset, buffer);
 	}
@@ -155,7 +155,7 @@ void* fetch_row_into_buffer(struct File_Handle* f_handle,
 	uint32_t* row_sz, uint8_t read_only) {
 	struct Row_Header* r_header;
 	uint32_t right_bound_row_header_offset = current_row_offset + sizeof(struct Row_Header);
-	printf("current_row_offset: %x, buffer_left_offset: %x, buffer_right_offset: %x\n", current_row_offset, *buffer_left_offset, *buffer_right_offset);
+	//printf("current_row_offset: %x, buffer_left_offset: %x, buffer_right_offset: %x\n", current_row_offset, *buffer_left_offset, *buffer_right_offset);
 	if ((*buffer_left_offset <= current_row_offset) && (right_bound_row_header_offset <= *buffer_right_offset)) {
 		// ROW HEADER IN BUFFER
 		*row_header_pos = current_row_offset - *buffer_left_offset;
@@ -165,7 +165,7 @@ void* fetch_row_into_buffer(struct File_Handle* f_handle,
 
 			// not the whole row in array
 			// should rewrite buffer data
-			printf("not the whole row in array\n");
+			//printf("not the whole row in array\n");
 			if (read_only != 1) {
 				flush_buffer(f_handle, *buffer_left_offset, *buffer_right_offset, buffer);
 
@@ -186,7 +186,7 @@ void* fetch_row_into_buffer(struct File_Handle* f_handle,
 	}
 	else {
 		// ROW HEADER NOT IN BUFFER
-		printf("ROW HEADER NOT IN BUFFER\n");
+		//printf("ROW HEADER NOT IN BUFFER\n");
 		if (read_only != 1) {
 			flush_buffer(f_handle, *buffer_left_offset, *buffer_right_offset, buffer);
 
@@ -627,7 +627,7 @@ uint32_t add_table_to_f_header_and_update_list(struct File_Handle* f_handle, uin
 	file_header.tables_number++;
 	file_header.last_table_offset = table_metadata_offset;
 	write_res = write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
-	printf("write res: %d\n", write_res);
+	//printf("write res: %d\n", write_res);
 	if (write_res == -1) {
 		return -1;
 	}
@@ -649,18 +649,18 @@ struct Cleared_Row_List {
 /*END INSERTION POLICY*/
 int32_t create_table(struct File_Handle* f_handle, struct String table_name, struct Table_Schema schema) {
 	
-	printf("create_table %s\n", table_name.value);
+	//printf("create_table %s\n", table_name.value);
 	if (find_table(f_handle, table_name).exists == 1) {
-		printf("tab ALREADY exists!\n");
+		//printf("tab ALREADY exists!\n");
 		return -1;
 	}
 	void* table_metadata = transform_table_metadata_into_db_format( table_name, schema);
-	printf("%p tab metadata arr\n", table_metadata);
+	//printf("%p tab metadata arr\n", table_metadata);
 	uint32_t table_metadata_sz = ((struct Table_Header*)table_metadata)->table_metadata_size;
 
 	uint32_t free_space_ptr = find_file_end(f_handle);
 	uint32_t write_res = write_into_db_file(f_handle, free_space_ptr, table_metadata_sz, table_metadata);
-	printf("write res: %d\n", write_res);
+	//printf("write res: %d\n", write_res);
 	if (write_res == -1) {
 		/*error*/
 		return -1;
@@ -680,7 +680,7 @@ int32_t create_table(struct File_Handle* f_handle, struct String table_name, str
 int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struct Data_Row_Node * data_row) {
 	
 	
-	printf("insert_row\n");
+	//printf("insert_row\n");
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
 		printf("tab DOESNT exists, cannot insert!\n");
@@ -700,7 +700,7 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 
 	uint32_t last_row_in_table_offset = tab_handle.table_header.last_row_offset;
 	if (last_row_in_table_offset != -1) {
-		printf("table wasnt empty\n");
+		//printf("table wasnt empty\n");
 		struct Row_Header last_row_in_table;
 		read_from_db_file(f_handle, last_row_in_table_offset, sizeof(struct Row_Header), &last_row_in_table);
 		last_row_in_table.next_row_header_offset = file_end;
@@ -709,7 +709,7 @@ int32_t insert_row(struct File_Handle* f_handle, struct String table_name, struc
 	}
 	else {
 		/*table was empty*/
-		printf("table empty\n");
+		//printf("table empty\n");
 		tab_handle.table_header.first_row_offset = file_end;
 	}
 	
@@ -766,7 +766,7 @@ struct Update_Set prepare_updates(void* table_metadata_buffer, struct Data_Row_N
 			struct Column_Header* col_header = (struct Column_Header*)curr_col_pos;
 			if (curr_val_upd->column_name.hash == col_header->column_name_metadata.hash) {
 				char* curr_col_name = (char*)((uint8_t*)curr_col_pos + sizeof(struct Column_Header));
-				printf("currr co; %s --------- cmp with %s\n", curr_col_name, curr_val_upd->column_name.value);
+				//printf("currr co; %s --------- cmp with %s\n", curr_col_name, curr_val_upd->column_name.value);
 				if (strcmp(curr_col_name, curr_val_upd->column_name.value) == 0) {
 					
 					if (col_header->data_type != curr_val_upd->value.data_type) {
@@ -1168,298 +1168,6 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 }
 
 
-//void* add_row_to_result_buffer(void* table_metadata_buffer,
-//								int32_t number_of_selected_columns,
-//								struct String* column_names,
-//								void* result_buffer,
-//								//uint32_t* result_buffer_sz,
-//								uint32_t* result_buffer_position,
-//								void* row) {
-//	printf("add_row_to_result_buffer\n");
-//	void* new_result_row_start = (uint8_t*)result_buffer + *result_buffer_position;
-//
-//	struct Row_Header* row_header = (struct Row_Header*)row;
-//	uint8_t select_all_columns = (number_of_selected_columns == -1) ? 1 : 0;
-//
-//	struct Table_Header* table_header = (struct Table_Header*)table_metadata_buffer;
-//	uint32_t total_columns_num = table_header->columns_number;
-//	uint32_t metadata_buffer_position = sizeof(struct Table_Header) + table_header->table_name_metadata.length + 1;
-//
-//	uint32_t row_position = sizeof(struct Row_Header);
-//
-//	uint32_t prev_col_val_in_res_position = -1;
-//
-//	for (uint32_t i = 0; i < total_columns_num; i++)
-//	{
-//		struct Column_Header* column_header = (struct Column_Header*)((uint8_t*)table_metadata_buffer + metadata_buffer_position);
-//		uint8_t add_to_res = 0;
-//		if (number_of_selected_columns == -1) {
-//			// select all cols
-//			add_to_res = 1;
-//		}
-//		else {
-//			for (uint32_t j = 0; j < number_of_selected_columns; j++)
-//			{
-//				struct String current_selected_col = column_names[j];
-//				if (current_selected_col.hash == column_header->column_name_metadata.hash) {
-//					char* searched_col_name = (uint8_t*)column_header + sizeof(struct Column_Header);
-//					if (strcmp(searched_col_name, current_selected_col.value) == 0) {
-//						add_to_res = 1;
-//						break;
-//					}
-//				}
-//			}
-//		}
-//		
-//		void* curr_col_val = (uint8_t*)row + row_position;
-//		uint32_t curr_col_val_sz = calc_inner_format_value_sz(column_header->data_type, curr_col_val); // += row_position
-//
-//		if (add_to_res == 1) {
-//
-//			// should_add current col val to result set
-//
-//			void* pos_to_write_result_col_val = (uint8_t*)result_buffer + *result_buffer_position;
-//			struct Data_Row_Node* result_col_val = (struct Data_Row_Node*)pos_to_write_result_col_val;
-//
-//			result_col_val->next_node = NULL;
-//			
-//			result_col_val->column_name.hash = column_header->column_name_metadata.hash;
-//			result_col_val->column_name.length = column_header->column_name_metadata.length;
-//			result_col_val->column_name.value = (char*)pos_to_write_result_col_val + sizeof(struct Data_Row_Node);
-//
-//			//copy column name
-//			uint32_t offset_from_row_node_end = column_header->column_name_metadata.length + 1;
-//			memcpy(result_col_val->column_name.value, (uint8_t*)column_header + sizeof(struct Column_Header), column_header->column_name_metadata.length + 1);
-//
-//			result_col_val->value.data_type = column_header->data_type;
-//
-//			if (column_header->data_type == INT) {
-//				result_col_val->value.value.db_integer = *((int32_t*)curr_col_val);
-//			}	
-//			if (column_header->data_type == FLOAT) {
-//				result_col_val->value.value.db_float = *((float*)curr_col_val);
-//			}
-//			if (column_header->data_type == BOOL) {
-//				result_col_val->value.value.db_boolean = *((enum Boolean*)curr_col_val);
-//			}
-//			if (column_header->data_type == STRING) {
-//				struct String_Metadata* str_metadata = (struct String_Metadata*)curr_col_val;
-//
-//				//curr_col_result_val_sz = curr_col_result_val_sz + str_metadata->length + 1;
-//				//if ((curr_col_result_val_sz + *result_buffer_position) > *result_buffer_sz) {
-//				//	/*ERROR: CANNOT REALLOC WITHOUT POINTERS CHANGING*/
-//				//	printf("invalid buffer sz\n");
-//				//	//*result_buffer_sz = *result_buffer_sz + *result_buffer_sz / 2 + curr_col_result_val_sz;
-//				//	//result_buffer = realloc(result_buffer, *result_buffer_sz);
-//				//}
-//
-//
-//				result_col_val->value.value.db_string.hash = str_metadata->hash;
-//				result_col_val->value.value.db_string.length = str_metadata->length;
-//				result_col_val->value.value.db_string.value = (char*)pos_to_write_result_col_val + sizeof(struct Data_Row_Node) + offset_from_row_node_end;
-//				
-//				memcpy(result_col_val->value.value.db_string.value, (uint8_t*)curr_col_val + sizeof(struct String_Metadata), str_metadata->length + 1);
-//				offset_from_row_node_end = offset_from_row_node_end + str_metadata->length + 1;
-//			}
-//
-//			if (prev_col_val_in_res_position != -1) {
-//				// set prev col val's next
-//				struct Data_Row_Node* prev_result_col_val = (struct Data_Row_Node*)((uint8_t*)result_buffer + prev_col_val_in_res_position);
-//				prev_result_col_val->next_node = (struct Data_Row_Node* )((uint8_t*)result_buffer + *result_buffer_position);
-//			}
-//
-//			prev_col_val_in_res_position = *result_buffer_position; // prev = current
-//			*result_buffer_position = *result_buffer_position + sizeof(struct Data_Row_Node) + offset_from_row_node_end;
-//
-//		}
-//
-//		metadata_buffer_position = metadata_buffer_position + sizeof(struct Column_Header) + column_header->column_name_metadata.length + 1;
-//		row_position = row_position + curr_col_val_sz;
-//	}
-//
-//	return new_result_row_start;
-//}
-//
-
-
-
-//struct Result_Set* single_table_bunch_select(struct File_Handle* f_handle,
-//											struct Table_Handle* table_handle,
-//											//struct Cursor cursor,
-//											uint32_t starting_row_offset,
-//											struct Condition* condition, // with join column restriction
-//											int32_t number_of_selected_columns, // -1 => all cols
-//											struct String* column_names,
-//											uint32_t max_row_num) {
-//
-//	//uint32_t starting_row_offset = cursor.next_row_offset;
-//	printf("single_table_bunch_select\n");
-//	uint32_t current_row_offset = starting_row_offset;
-//
-//	struct Result_Set* rs = malloc(sizeof(struct Result_Set));
-//
-//	if (current_row_offset == -1) {
-//			//tab is empty
-//		printf("tab tail is empty!\n");
-//		rs->rows_num = 0;
-//		return rs;
-//	}
-//
-//	void* table_metadata_buffer = malloc(table_handle->table_header.table_metadata_size);
-//	read_from_db_file(f_handle, table_handle->table_metadata_offset, table_handle->table_header.table_metadata_size, table_metadata_buffer);
-//
-//	//uint8_t select_all_columns = (number_of_selected_columns == -1) ? 1 : 0;
-//
-//	uint32_t number_of_rows_selected = 0;
-//
-//	void* current_result_buffer = malloc(MAX_RESULT_BUFFER_SIZE);
-//	uint32_t current_result_buffer_sz = MAX_RESULT_BUFFER_SIZE;
-//	uint32_t current_result_buffer_position = 0;
-//
-//	void** result_buffers_pool = malloc(10 * sizeof(void*));
-//	uint32_t result_buffers_pool_sz = 10;
-//	result_buffers_pool[0] = current_result_buffer;
-//	uint32_t result_buffers_num = 1;
-//
-//	struct Data_Row_Node** row_pointers_buffer = malloc(sizeof(struct Data_Row_Node*) * max_row_num);
-//	uint32_t row_pointers_buffer_position = 0;
-//
-//	void* buffer = malloc(DB_MAX_ROW_SIZE);
-//	uint32_t buff_sz = DB_MAX_ROW_SIZE;
-//	uint32_t buffer_left_offset = 0;
-//	uint32_t buffer_right_offset = 0;
-//
-//	//uint32_t current_row_offset = table_handle.table_header.first_row_offset;
-//	//uint32_t current_row_offset = cursor.next_row_offset;
-//
-//	/*while (current_row_offset != -1) {*/
-//	uint32_t next_row_offset;
-//	while ((current_row_offset != -1) && (number_of_rows_selected < max_row_num)) {
-//
-//		uint32_t row_sz;
-//		uint32_t row_header_pos;
-//
-//		buffer = fetch_row_into_buffer(f_handle,
-//			buffer,
-//			current_row_offset,
-//			&buff_sz,
-//			&buffer_left_offset,
-//			&buffer_right_offset,
-//			&row_header_pos,
-//			&row_sz);
-//		struct Row_Header* r_header = (struct Row_Header*)((uint8_t*)buffer + row_header_pos);
-//		next_row_offset = r_header->next_row_header_offset;
-//		/*row is in buffer on row_header_pos position*/
-//
-//		/*APPLY FILTER*/
-//		uint8_t row_suitable = apply_filter(table_metadata_buffer, (uint8_t*)buffer + row_header_pos, condition);
-//
-//		if (row_suitable == 1) {
-//			// should add to result_set
-//
-//			uint32_t upper_bound_on_row_sz = sizeof(struct Data_Row_Node) * number_of_selected_columns
-//				+ r_header->row_size
-//				+ table_handle->table_header.table_metadata_size
-//				- sizeof(struct Table_Header)
-//				- sizeof(struct Column_Header) * table_handle->table_header.columns_number;
-//			if ((upper_bound_on_row_sz + current_result_buffer_position) > current_result_buffer_sz) {
-//				// alloc new buffer in buffer pool
-//				current_result_buffer_sz = (MAX_RESULT_BUFFER_SIZE > upper_bound_on_row_sz) ? MAX_RESULT_BUFFER_SIZE : upper_bound_on_row_sz;
-//				current_result_buffer = malloc(current_result_buffer_sz);
-//				current_result_buffer_position = 0;
-//
-//				if (result_buffers_num == result_buffers_pool_sz) {
-//					result_buffers_pool_sz = result_buffers_pool_sz + result_buffers_pool_sz / 2;
-//					result_buffers_pool = realloc(result_buffers_pool, result_buffers_pool_sz);
-//				}
-//				result_buffers_pool[result_buffers_num] = current_result_buffer;
-//				result_buffers_num++;
-//
-//			}
-//			void* new_result_row_pointer = add_row_to_result_buffer(table_metadata_buffer,
-//				number_of_selected_columns,
-//				column_names,
-//				current_result_buffer,
-//				&current_result_buffer_position,
-//				r_header);
-//			row_pointers_buffer[row_pointers_buffer_position] = (struct Data_Row_Node*)new_result_row_pointer;
-//			row_pointers_buffer_position++;
-//			number_of_rows_selected++;
-//		}
-//		current_row_offset = next_row_offset;
-//
-//	}
-//
-//	free(buffer);
-//	free(table_metadata_buffer);
-//	// < max_row_num rows were fetched, but the whole table
-//	rs->whole_table = (current_row_offset == -1) ? 1 : 0;
-//	rs->rows_num = number_of_rows_selected;
-//	rs->table_handle = table_handle;
-//	rs->result_buffers_num = result_buffers_num;
-//	rs->result_buffers_pool = result_buffers_pool;
-//	rs->row_pointers = row_pointers_buffer;
-//	rs->next_table_row_offset = current_row_offset;
-//	rs->column_names = column_names;
-//	rs->number_of_selected_columns = number_of_selected_columns;
-//	rs->condition = condition;
-//	return rs;
-//}
-//
-//
-//
-//
-//
-//struct Result_Set* single_table_select(struct File_Handle* f_handle,
-//									struct String table_name,
-//									struct Condition* condition,
-//									int32_t number_of_selected_columns, // -1 => all cols
-//									struct String* column_names,
-//									uint32_t max_row_num) {
-//	printf("single_table_select\n");
-//	struct Table_Handle* table_handle = malloc(sizeof(struct Table_Handle));
-//	*table_handle = find_table(f_handle, table_name);
-//	if (table_handle->exists == 0) {
-//		printf("wrong tab name\n");
-//		return NULL;
-//	}
-//	return single_table_bunch_select(f_handle,
-//		table_handle,
-//		//struct Cursor cursor,
-//		table_handle->table_header.first_row_offset,
-//		condition, // with join column restriction
-//		number_of_selected_columns, // -1 => all cols
-//		column_names,
-//		max_row_num);
-//}
-//
-//
-///*NEEDS TESTING*/
-//struct Result_Set* single_table_get_next(struct File_Handle* f_handle,
-//	struct Result_Set* rs,
-//	uint32_t max_row_num) {
-//	
-//	/*clean prev data*/
-//	for (uint32_t i = 0; i < rs->result_buffers_num; i++)
-//	{
-//		free((rs->result_buffers_pool)[i]);
-//	}
-//	free(rs->result_buffers_pool);
-//	free(rs->row_pointers);
-//
-//	struct Result_Set* new_rs = single_table_bunch_select(f_handle,
-//		rs->table_handle,
-//		rs->next_table_row_offset,
-//		rs->condition, // with join column restriction
-//		rs->number_of_selected_columns, // -1 => all cols
-//		rs->column_names,
-//		max_row_num);
-//
-//	free(rs);
-//	return new_rs;
-//
-//}
-
 
 
 /*JOIN TAB VALIDATOR -- ? */
@@ -1840,6 +1548,7 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 	struct Row_Header** row_chain_buffer = malloc(sizeof(struct Row_Header*) * rs->number_of_joined_tables);
 
 	free_table_row_bunch_struct_list(rs->rows_chain);
+	rs->rows_chain = NULL;
 
 	struct Table_Row_Bunch* new_row_bunch = table_chain_single_recursive_select(f_handle,
 		rs->number_of_joined_tables,
@@ -1854,7 +1563,7 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 		max_row_num);
 
 	if (new_row_bunch == NULL) {
-		free_table_chain_result_set_with_all_fields(rs);
+		free_table_chain_result_set_inner_fields(rs);
 		///*clear everything created inside inner select function*/
 		//free(row_chain_buffer);
 		//free(rs->cursor_offsets);
@@ -1862,7 +1571,9 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 		//free(rs->tab_handles);
 		//free(rs);
 		///*do not clear conditions, col names etc that were given as a parameter*/
-		return NULL;
+		rs->rows_num = 0;
+		rs->probably_has_next = 0;
+		return rs;
 	}
 
 	uint32_t fetched_rows_num = new_row_bunch->total_fetched_rows_num;

@@ -1,6 +1,7 @@
 #include "query_handler.h"
 #include "printers.h"
 #include "file_handler.h"
+#include <time.h>  
 
 void create_student_table(struct File_Handle* f_handle) {
 	struct Table_Schema stud_schema = table_schema_init();
@@ -370,8 +371,12 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 		.query_details = su
 	};
 
-	struct Table_Chain_Result_Set* rs = process_select(fh, sel);
+	struct Table_Chain_Result_Set* rs = process_select_with_row_num(fh, sel, 1);
 	print_joined_table_rows(rs);
+	while (rs->probably_has_next == 1) {
+		rs = result_set_get_next(fh, rs);
+		print_joined_table_rows(rs);
+	}
 
 }
 
@@ -379,6 +384,89 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 void process_student_inserts_from_text_format() {
 
 }
+
+
+
+
+void create_int_table(struct File_Handle* f_handle) {
+	struct Table_Schema schema = table_schema_init();
+
+	table_schema_expand(&schema, "col1", INT);
+
+	table_create(f_handle, "tab1", schema);
+}
+
+
+//struct Single_Table_Select {
+//	struct String table_name;
+//	uint32_t number_of_columns; // -1 == all cols
+//	struct String* column_names;
+//	struct Condition* condition;
+//};
+//
+//union Select_Union {
+//	struct Single_Table_Select single_table_select;
+//	struct Joined_Table_Select joined_table_select;
+//};
+//
+//struct Select {
+//	uint8_t is_single_table_select;
+//	union Select_Union query_details;
+//};
+
+void asymptotics_testing(struct File_Handle* f_handle) {
+	printf("ASYMPTESTING!\n");
+	create_int_table(f_handle);
+	struct Insert ins = (struct Insert){
+			.table_name = inner_string_create("tab1"),
+			.new_data = NULL
+	};
+	struct Schema_Internals_Value val;
+	val.data_type = INT;
+	val.value.db_integer = 1;
+	struct Condition cond = create_simple_condition("col1", val, EQUALS);
+	struct Single_Table_Select ssel = (struct Single_Table_Select) {
+		.table_name = inner_string_create("tab1"),
+		.number_of_columns = -1,
+		.column_names = NULL,
+		.condition = &cond
+	};
+	union Select_Union su = (union Select_Union){
+		.single_table_select = ssel
+	};
+
+	struct Select sel = (struct Select){
+		.is_single_table_select = 1,
+		.query_details = su
+	};
+	for (size_t i = 0; i < 10; i++)
+	{
+		clock_t begin = clock();
+		for (size_t i = 0; i < 10000; i++)
+		{
+			int val = i % 10;
+			struct Data_Row_Node rn0 = create_data_row_node("col1", INT, &val);
+			ins.new_data = &rn0;
+			process_insert(f_handle, ins);
+		}
+		clock_t end = clock();
+		//printf("10000 elems insert time: %f\n", (double)(end - begin)/CLOCKS_PER_SEC);
+		begin = clock();
+		struct Table_Chain_Result_Set* rs = process_select_with_row_num(f_handle, sel, 500);
+		while (rs->probably_has_next == 1) {
+			rs = result_set_get_next(f_handle, rs);
+		}
+		free(rs);
+		end = clock();
+		//printf("select time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+	}
+	
+	
+}
+
+
+
+
 
 
 //struct Joined_Table {
