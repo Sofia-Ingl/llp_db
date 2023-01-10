@@ -459,21 +459,23 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 			process_insert(f_handle, ins);
 		}
 		clock_t end = clock();
-		//printf("10000 elems insert time: %f\n", (double)(end - begin)/CLOCKS_PER_SEC);
+		////printf("10000 elems insert time: %f\n", (double)(end - begin)/CLOCKS_PER_SEC);
 		begin = clock();
-		struct Table_Chain_Result_Set* rs = process_select_with_row_num(f_handle, sel, 500);
+		struct Table_Chain_Result_Set* rs = process_select_with_row_num(f_handle, sel, 50);
 		while (rs->probably_has_next == 1) {
+				
 			rs = result_set_get_next(f_handle, rs);
 		}
 		free(rs);
 		end = clock();
-		//printf("select time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
-		//begin = clock();
-		//int del_num = process_delete(f_handle, del, 0);
-		////printf("deleted %d \n", del_num);
-		//end = clock();
-		//printf("delete time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
-		printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		printf("select time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		////begin = clock();
+		////int del_num = process_delete(f_handle, del, 0);
+		//////printf("deleted %d \n", del_num);
+		////end = clock();
+		////printf("delete time: %f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		//printf("%f\n", (double)(end - begin) / CLOCKS_PER_SEC);
+		
 	}
 	
 	

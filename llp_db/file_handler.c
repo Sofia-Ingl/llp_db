@@ -1522,15 +1522,25 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 	rs->probably_has_next = probably_has_next;
 	rs->rows_num = fetched_rows_num;
 	rs->number_of_joined_tables = number_of_joined_tables;
-	rs->join_conditions = join_conditions;
-	rs->table_names = table_names;
+	//rs->join_conditions = join_conditions;
+	rs->join_conditions = malloc(sizeof(struct Join_Condition*) * (number_of_joined_tables - 1));
+	memcpy(rs->join_conditions, join_conditions, sizeof(struct Join_Condition*) * (number_of_joined_tables - 1));
+	//rs->table_names = table_names;
+	rs->table_names = malloc(sizeof(struct String*) * (number_of_joined_tables));
+	memcpy(rs->table_names, table_names, sizeof(struct String*) * (number_of_joined_tables));
 	rs->cursor_offsets = cursor_offsets;
-	rs->conditions_on_single_tables = conditions_on_single_tables;
+	/*rs->conditions_on_single_tables = conditions_on_single_tables;*/
+	rs->conditions_on_single_tables = malloc(sizeof(struct Condition*) * (number_of_joined_tables));
+	memcpy(rs->conditions_on_single_tables, conditions_on_single_tables, sizeof(struct Condition*) * (number_of_joined_tables));
 	rs->tab_handles = tab_handle_array;
 	rs->table_metadata_buffers = table_metadata_buffers;
 	rs->rows_chain = rows_chain;
-	rs->number_of_selected_columns = number_of_columns_from_each_table; // -1 => all cols
-	rs->column_names = column_names;
+	//rs->number_of_selected_columns = number_of_columns_from_each_table; // -1 => all cols
+	rs->number_of_selected_columns = malloc(sizeof(uint32_t*) * (number_of_joined_tables));
+	memcpy(rs->number_of_selected_columns, number_of_columns_from_each_table, sizeof(uint32_t*) * (number_of_joined_tables));
+	//rs->column_names = column_names;
+	rs->column_names = malloc(sizeof(struct String**) * (number_of_joined_tables));
+	memcpy(rs->column_names, column_names, sizeof(struct String**) * (number_of_joined_tables));
 
 	return rs;
 
@@ -1544,12 +1554,11 @@ struct Table_Chain_Result_Set* table_chain_select(struct File_Handle* f_handle,
 struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle,
 	struct Table_Chain_Result_Set * rs,
 	uint32_t max_row_num) {
-
 	struct Row_Header** row_chain_buffer = malloc(sizeof(struct Row_Header*) * rs->number_of_joined_tables);
-
+	
 	free_table_row_bunch_struct_list(rs->rows_chain);
 	rs->rows_chain = NULL;
-
+	
 	struct Table_Row_Bunch* new_row_bunch = table_chain_single_recursive_select(f_handle,
 		rs->number_of_joined_tables,
 		rs->table_names,
@@ -1561,8 +1570,9 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 		rs->cursor_offsets,
 		0,
 		max_row_num);
-
+	
 	if (new_row_bunch == NULL) {
+		
 		free_table_chain_result_set_inner_fields(rs);
 		///*clear everything created inside inner select function*/
 		//free(row_chain_buffer);
@@ -1575,7 +1585,7 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 		rs->probably_has_next = 0;
 		return rs;
 	}
-
+	
 	uint32_t fetched_rows_num = new_row_bunch->total_fetched_rows_num;
 	uint8_t probably_has_next = (fetched_rows_num == max_row_num) ? 1 : 0;
 
@@ -1583,9 +1593,9 @@ struct Table_Chain_Result_Set* table_chain_get_next(struct File_Handle* f_handle
 		0,
 		rs->number_of_selected_columns,
 		rs->column_names);
-
+	
 	free(row_chain_buffer);
-
+	
 	// cursor offsets changed
 	rs->rows_num = fetched_rows_num;
 	rs->rows_chain = rows_chain;

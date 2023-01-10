@@ -15,13 +15,13 @@ void free_table_chain_result_set_inner_fields(struct Table_Chain_Result_Set* rs)
 		free(rs->table_metadata_buffers[i]);
 		
 	}
-	//free(rs->column_names);
-	//free(rs->number_of_selected_columns);
+	free(rs->column_names);
+	free(rs->number_of_selected_columns);
 	free(rs->table_metadata_buffers);
-	//free(rs->conditions_on_single_tables);
+	free(rs->conditions_on_single_tables);
 	free(rs->cursor_offsets);
-	//free(rs->join_conditions);
-	//free(rs->table_names);
+	free(rs->join_conditions);
+	free(rs->table_names);
 	free(rs->tab_handles);
 	//free(rs);
 }
