@@ -29,11 +29,8 @@ uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
 	uint32_t number_of_selected_columns,
 	struct String* column_names,
 	void* result_buffer,
-	//uint32_t* result_buffer_sz,
-	/*uint32_t* result_buffer_position,*/
 	uint32_t result_buffer_position,
 	void* row) {
-	//printf("add_row_to_result_buffer\n");
 	void* new_result_row_start = (uint8_t*)result_buffer + result_buffer_position;
 
 	struct Row_Header* row_header = (struct Row_Header*)row;
@@ -103,15 +100,6 @@ uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
 			if (column_header->data_type == STRING) {
 				struct String_Metadata* str_metadata = (struct String_Metadata*)curr_col_val;
 
-				//curr_col_result_val_sz = curr_col_result_val_sz + str_metadata->length + 1;
-				//if ((curr_col_result_val_sz + *result_buffer_position) > *result_buffer_sz) {
-				//	/*ERROR: CANNOT REALLOC WITHOUT POINTERS CHANGING*/
-				//	printf("invalid buffer sz\n");
-				//	//*result_buffer_sz = *result_buffer_sz + *result_buffer_sz / 2 + curr_col_result_val_sz;
-				//	//result_buffer = realloc(result_buffer, *result_buffer_sz);
-				//}
-
-
 				result_col_val->value.value.db_string.hash = str_metadata->hash;
 				result_col_val->value.value.db_string.length = str_metadata->length;
 				result_col_val->value.value.db_string.value = (char*)pos_to_write_result_col_val + sizeof(struct Data_Row_Node) + offset_from_row_node_end;
@@ -142,7 +130,6 @@ uint32_t add_row_to_result_buffer(void* table_metadata_buffer,
 
 /*TRANSFORMATION LAYER*/
 void* transform_table_metadata_into_db_format(struct String table_name, struct Table_Schema schema) {
-	//printf("transform_table_metadata_into_db_format\n");
 	struct String_Metadata table_name_metadata = (struct String_Metadata){
 		.hash = table_name.hash,
 		.length = table_name.length
@@ -301,7 +288,6 @@ void* transform_data_row_into_db_format(void* tab_metadata_buffer, struct Data_R
 		current_row = current_row->next_node;
 	}
 	if (current_row != NULL) {
-		//printf("EXTRA COLUMNS\n");
 		free(buffer);
 		return NULL;
 	}
@@ -325,9 +311,6 @@ struct Table_Row_Lists_Bunch* transform_row_bunch_into_ram_format(struct Table_H
 	uint32_t upper_bound_on_row_lists_buffer_sz = 
 		trb->row_sz_sum
 		+ metadata_sz
-		//- sizeof(struct Table_Header)
-		//- sizeof(struct Column_Header) * number_of_columns
-		//- trb->local_fetched_rows_num * sizeof(struct Row_Header)
 		+ sizeof(struct Data_Row_Node) * number_of_columns * trb->local_fetched_rows_num;
 	
 	void* row_lists_buffer = malloc(upper_bound_on_row_lists_buffer_sz);

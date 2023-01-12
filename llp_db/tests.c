@@ -588,6 +588,7 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 		end = clock();
 		update_time[i] = (double)(end - begin) / CLOCKS_PER_SEC;
 		
+		
 		/*JOIN TAB SELECT*/
 		for (size_t j = 0; j < 10; j++)
 		{

@@ -8,10 +8,6 @@ void free_table_chain_result_set_inner_fields(struct Table_Chain_Result_Set* rs)
 	
 	for (uint32_t i = 0; i < rs->number_of_joined_tables; i++)
 	{
-		/*if (rs->number_of_selected_columns[i] != -1) {
-			free(rs->column_names[i]);
-		}*/
-		//free(rs->conditions_on_single_tables[i]); // free(Null) - ?
 		free(rs->table_metadata_buffers[i]);
 		
 	}
@@ -23,5 +19,4 @@ void free_table_chain_result_set_inner_fields(struct Table_Chain_Result_Set* rs)
 	free(rs->join_conditions);
 	free(rs->table_names);
 	free(rs->tab_handles);
-	//free(rs);
 }

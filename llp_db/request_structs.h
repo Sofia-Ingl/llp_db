@@ -17,7 +17,6 @@ enum Request_Type {
 /*JOIN SELECT*/
 
 struct Joined_Table_Select {
-	//int8_t all_columns;
 	struct Joined_Table joined_table;
 	uint32_t* number_of_columns_from_each_table;
 	struct String** column_names; // array with len == joined_tables_num
@@ -56,8 +55,6 @@ struct Delete {
 
 struct Insert {
 	struct String table_name;
-	//uint32_t number_of_rows;
-	//struct Data_Row_Node** new_data; // array of linked lists, every ll == row
 	struct Data_Row_Node* new_data; // one row
 };
 

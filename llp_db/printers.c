@@ -54,7 +54,7 @@ void reset_row_arr_pos(struct Table_Row_Lists_Bunch** trlb_cur_row_list, uint32_
 
 	for (int32_t i = tab_num - 1; i >= 0; i--)
 	{
-		//try to find trlb to change
+		
 		struct Table_Row_Lists_Bunch* table = trlb_cur_row_list[i];
 		if ((table->local_rows_num - 1) > row_positions[i]) {
 			not_fully_fetched_row_bunch_index = i;
@@ -95,7 +95,7 @@ void print_joined_table_rows(struct Table_Chain_Result_Set* rs) {
 		print_joined_table_column_names(trlb_cur_row_list, row_positions, rs->number_of_joined_tables, rs->table_names);
 		for (uint32_t i = 0; i < rs->rows_num; i++)
 		{
-			//print_joined_table_row(arr, rs->joined_table.number_of_joined_tables);
+			
 			print_joined_table_row(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
 			reset_row_arr_pos(trlb_cur_row_list, row_positions, rs->number_of_joined_tables);
 		}

@@ -78,25 +78,21 @@ int main(int argc, char* argv[]) {
 		test_select_on_short_test_schema(fh);
 		file_close(fh, normalize);
 
-		/*char* asymp_filename = "asymp";
+		char* asymp_filename = "asymp";
 		struct File_Handle* asymp_fh = file_open_or_create(asymp_filename);
 		asymptotics_testing(asymp_fh);
-		file_close(asymp_fh, 0);*/
+		file_close(asymp_fh, 0);
 
-		char* sizetest_filename = "sizetest";
+		/*char* sizetest_filename = "sizetest";
 		struct File_Handle* sizetest_fh = file_open_or_create_with_gap_rate_and_sz(sizetest_filename, 0.05, 2048);
 		size_testing(fh);
-		file_close(sizetest_fh, 0);
+		file_close(sizetest_fh, 0);*/
 
 		
 
 		
 		
 	}
-	
-
-
-	//test_func1(fh);
 
 	char c = getchar();
 	return 0;

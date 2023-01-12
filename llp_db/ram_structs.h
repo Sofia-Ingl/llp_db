@@ -18,19 +18,6 @@ struct Table_Schema {
 	struct Column_Info_Block* column_info;
 };
 
-//struct Result_Set {
-//	uint8_t whole_table;
-//	uint32_t rows_num;
-//	struct Table_Handle* table_handle;
-//	struct Data_Row_Node** row_pointers;
-//	uint32_t result_buffers_num; // to clear after use
-//	void** result_buffers_pool; // to clear after use
-//	uint32_t next_table_row_offset;
-//	struct Condition* condition;
-//	int32_t number_of_selected_columns; // -1 => all cols
-//	struct String* column_names;
-//};
-
 struct Table_Chain_Result_Set {
 
 	uint32_t rows_num; // if rows_num < max_row_num -> EOF reached
