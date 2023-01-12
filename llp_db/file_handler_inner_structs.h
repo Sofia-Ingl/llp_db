@@ -8,6 +8,7 @@ struct File_Handle {
 	FILE* file;
 	char* filename;
 	float critical_gap_rate;
+	uint32_t critical_gap_sz;
 };
 
 struct Table_Handle {

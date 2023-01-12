@@ -87,7 +87,7 @@ uint32_t check_db_file_signature(struct File_Handle* f_handle) {
 	return 0;
 }
 
-struct File_Handle* open_or_create_db_file(char* filename, float critical_gap_rate) {
+struct File_Handle* open_or_create_db_file(char* filename, float critical_gap_rate, uint32_t critical_gap_sz) {
 	FILE* f = open_db_file(filename);
 	uint8_t is_created = 0;
 	if (f == NULL) {
@@ -103,6 +103,7 @@ struct File_Handle* open_or_create_db_file(char* filename, float critical_gap_ra
 	f_handle->file = f;
 	f_handle->critical_gap_rate = critical_gap_rate;
 	f_handle->filename = filename;
+	f_handle->critical_gap_sz = critical_gap_sz;
 
 	if (is_created == 0) {
 		
@@ -418,8 +419,8 @@ struct Copy_Op_Result copy_table_to_db_file(struct File_Handle* dest, struct Fil
 
 
 void normalize_db_file(struct File_Handle* f_handle, uint8_t preserve_f_handle) {
-	printf("norm\n");
-	struct File_Handle* new_f_handle = open_or_create_db_file("buffer_file", f_handle->critical_gap_rate);
+
+	struct File_Handle* new_f_handle = open_or_create_db_file("buffer_file", f_handle->critical_gap_rate, f_handle->critical_gap_sz);
 	struct File_Header src_file_header;
 	uint32_t read_res = read_from_db_file(f_handle, 0, sizeof(struct File_Header), &src_file_header);
 
@@ -466,16 +467,22 @@ float check_gap_rate(struct File_Handle* f_handle, uint32_t gap_sz) {
 
 
 
-void normalize_db_file_after_command(struct File_Handle* f_handle) {
+void normalize_db_file_after_command(struct File_Handle* f_handle, enum Normalization normalization) {
 	
-	struct File_Header f_header;
-	read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
-	float gap_rate = check_gap_rate(f_handle, f_header.gap_sz);
-	if (gap_rate >= f_handle->critical_gap_rate) {
-		normalize_db_file(f_handle, 1); // only FILE* in f_handle changed beacause file reopened
+	if (normalization == NORMALIZATION_ALLOW) {
+		struct File_Header f_header;
+		read_from_db_file(f_handle, 0, sizeof(struct File_Header), &f_header);
+		float gap_rate = check_gap_rate(f_handle, f_header.gap_sz);
+		if ((gap_rate >= f_handle->critical_gap_rate || f_header.gap_sz > f_handle->critical_gap_sz)) {
+			normalize_db_file(f_handle, 1); // only FILE* in f_handle changed beacause file reopened
+		}
 	}
 
-	
+	if (normalization == NORMALIZATION_DO_FORCE) {
+		normalize_db_file(f_handle, 1); // only FILE* in f_handle changed beacause file reopened
+		
+	}
+
 }
 
 
@@ -928,7 +935,7 @@ void* create_updated_row(void* tab_metadata_buffer, void* row, struct Update_Set
 
 
 /*END INSERTION POLICY*/
-int32_t update_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, struct Data_Row_Node* new_data, uint8_t allow_normalization) {
+int32_t update_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, struct Data_Row_Node* new_data, enum Normalization normalization) {
 	//printf("Update_rows \n");
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
@@ -1158,10 +1165,7 @@ int32_t update_rows(struct File_Handle* f_handle, struct String table_name, stru
 	free(buffer);
 	free(table_metadata_buffer);
 
-	if (allow_normalization == 1) {
-		normalize_db_file_after_command(f_handle);
-	}
-	
+	normalize_db_file_after_command(f_handle, normalization);
 
 	return number_of_rows_updated;
 	
@@ -1740,7 +1744,7 @@ struct Cleared_Row_List clear_row_list_by_condition(struct File_Handle* f_handle
 }
 
 
-int32_t delete_table(struct File_Handle* f_handle, struct String table_name, uint8_t allow_normalization) {
+int32_t delete_table(struct File_Handle* f_handle, struct String table_name, enum Normalization normalization) {
 	
 	//printf("delete_table\n");
 
@@ -1837,17 +1841,14 @@ int32_t delete_table(struct File_Handle* f_handle, struct String table_name, uin
 	free(buffer);
 	write_into_db_file(f_handle, 0, sizeof(struct File_Header), &file_header);
 
-	if (allow_normalization == 1) {
-		normalize_db_file_after_command(f_handle);
-	}
-
-
+	normalize_db_file_after_command(f_handle, normalization);
+	
 	return 0;
 }
 
 
 
-int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, uint8_t allow_normalization) {
+int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, struct Condition* condition, enum Normalization normalization) {
 
 	struct Table_Handle tab_handle = find_table(f_handle, table_name);
 	if (tab_handle.exists == 0) {
@@ -1920,10 +1921,8 @@ int32_t delete_rows(struct File_Handle* f_handle, struct String table_name, stru
 
 	free(table_metadata_buffer);
 
-	if (allow_normalization == 1) {
-		normalize_db_file_after_command(f_handle);
-	}
-
+	normalize_db_file_after_command(f_handle, normalization);
+	
 
 	return cleared_row_list.number_of_rows_deleted;
 }

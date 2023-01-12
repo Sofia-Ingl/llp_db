@@ -5,6 +5,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+enum Normalization {
+	NORMALIZATION_RESTRICT,
+	NORMALIZATION_ALLOW,
+	NORMALIZATION_DO_FORCE // not looking at gap sz and rate
+};
+
 struct String {
 	uint32_t hash;
 	uint16_t length;

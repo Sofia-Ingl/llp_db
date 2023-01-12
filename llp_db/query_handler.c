@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #define DEFAULT_CRITICAL_GAP_RATE 0.2
+#define DEFAULT_CRITICAL_GAP_SIZE 4096
 
 struct Table_Schema table_schema_init() {
 	void* column_metadata_array = malloc(sizeof(struct Column_Info_Block) * 10);
@@ -18,7 +19,7 @@ struct Table_Schema table_schema_init() {
 }
 
 int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum DB_Data_Type data_type) {
-	printf("table_schema_expand\n");
+
 	struct String hashed_column_name = inner_string_create(column_name);
 
 	struct Column_Info_Block new_column = (struct Column_Info_Block){
@@ -49,7 +50,25 @@ int8_t table_schema_expand(struct Table_Schema* schema, char* column_name, enum 
 
 
 struct File_Handle* file_open_or_create(char* filename) {
-	struct File_Handle* file_handle = open_or_create_db_file(filename, DEFAULT_CRITICAL_GAP_RATE);
+	struct File_Handle* file_handle = open_or_create_db_file(filename, DEFAULT_CRITICAL_GAP_RATE, DEFAULT_CRITICAL_GAP_SIZE);
+	// errors handle
+	return file_handle;
+}
+
+struct File_Handle* file_open_or_create_with_gap_rate(char* filename, float critical_gap_rate) {
+	struct File_Handle* file_handle = open_or_create_db_file(filename, critical_gap_rate, DEFAULT_CRITICAL_GAP_SIZE);
+	// errors handle
+	return file_handle;
+}
+
+struct File_Handle* file_open_or_create_with_gap_sz(char* filename, uint32_t critical_gap_sz) {
+	struct File_Handle* file_handle = open_or_create_db_file(filename, DEFAULT_CRITICAL_GAP_RATE, critical_gap_sz);
+	// errors handle
+	return file_handle;
+}
+
+struct File_Handle* file_open_or_create_with_gap_rate_and_sz(char* filename, float critical_gap_rate, uint32_t critical_gap_sz) {
+	struct File_Handle* file_handle = open_or_create_db_file(filename, critical_gap_rate, critical_gap_sz);
 	// errors handle
 	return file_handle;
 }
@@ -64,21 +83,21 @@ int8_t table_create(struct File_Handle* f_handle, char* table_name, struct Table
 	create_table(f_handle, hashed_tab_name, schema);
 }
 
-int8_t table_delete(struct File_Handle* f_handle, char* table_name, uint8_t allow_normalization) {
+int8_t table_delete(struct File_Handle* f_handle, char* table_name, enum Normalization normalization) {
 	struct String hashed_tab_name = inner_string_create(table_name);
-	delete_table(f_handle, hashed_tab_name, allow_normalization);
+	delete_table(f_handle, hashed_tab_name, normalization);
 }
 
 int32_t process_insert(struct File_Handle* f_handle, struct Insert insert_command) {
 	return insert_row(f_handle, insert_command.table_name, insert_command.new_data);
 }
 
-int32_t process_update(struct File_Handle* f_handle, struct Update update_command, uint8_t allow_normalization) {
-	return update_rows(f_handle, update_command.table_name, update_command.condition, update_command.new_data, allow_normalization);
+int32_t process_update(struct File_Handle* f_handle, struct Update update_command, enum Normalization normalization) {
+	return update_rows(f_handle, update_command.table_name, update_command.condition, update_command.new_data, normalization);
 }
 
-int32_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, uint8_t allow_normalization) {
-	return delete_rows(f_handle, delete_command.table_name, delete_command.condition, allow_normalization);
+int32_t process_delete(struct File_Handle* f_handle, struct Delete delete_command, enum Normalization normalization) {
+	return delete_rows(f_handle, delete_command.table_name, delete_command.condition, normalization);
 }
 
 struct Table_Chain_Result_Set* process_select(struct File_Handle* f_handle, struct Select select_command) {
@@ -128,6 +147,10 @@ struct Table_Chain_Result_Set* process_select_with_row_num(struct File_Handle* f
 		max_row_num);
 }
 
+/*for testing*/
+uint32_t get_file_sz(struct File_Handle* f_handle) {
+	return find_file_end(f_handle);
+}
 
 
 //void test_func1(struct File_Handle* f_handle) {

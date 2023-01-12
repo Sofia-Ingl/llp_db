@@ -292,11 +292,6 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 		table_names[i] = inner_string_create(char_table_names[i]);
 	}
 
-	/*table_names[0] = inner_string_create("student");
-	table_names[1] = inner_string_create("group");
-	table_names[2] = inner_string_create("curriculum");
-	table_names[3] = inner_string_create("cur_sub_relation");
-	table_names[4] = inner_string_create("subject");*/
 
 	struct Join_Condition join_conditions[4];
 	
@@ -583,13 +578,13 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 
 		/*DELETE*/
 		begin = clock();
-		int del_num = process_delete(f_handle, del, 0);
+		int del_num = process_delete(f_handle, del, NORMALIZATION_RESTRICT);
 		end = clock();
 		delete_time[i] = (double)(end - begin) / CLOCKS_PER_SEC;
 
 		/*UPDATE*/
 		begin = clock();
-		int upd_num = process_update(f_handle, upd, 0);
+		int upd_num = process_update(f_handle, upd, NORMALIZATION_RESTRICT);
 		end = clock();
 		update_time[i] = (double)(end - begin) / CLOCKS_PER_SEC;
 		
@@ -641,4 +636,57 @@ void asymptotics_testing(struct File_Handle* f_handle) {
 	}
 }
 
+
+void size_testing(struct File_Handle* f_handle) {
+	printf("SIZETESTING!\n");
+
+	struct Table_Schema schema = table_schema_init();
+
+	table_schema_expand(&schema, "col1", INT);
+
+	table_create(f_handle, "tab1", schema);
+
+	table_schema_expand(&schema, "col1", INT);
+
+	table_create(f_handle, "tab2", schema);
+
+	/*INSERTS*/
+
+	struct Insert ins = (struct Insert){
+			.table_name = inner_string_create("tab1"),
+			.new_data = NULL
+	};
+
+	struct Schema_Internals_Value del_val;
+	del_val.data_type = INT;
+	del_val.value.db_integer = 0;
+	struct Condition del_cond = create_simple_condition("col1", del_val, EQUALS);
+	struct Delete del = (struct Delete){
+		.table_name = inner_string_create("tab1"),
+		.condition = &del_cond
+	};
+	
+	printf("FILE SZ\n");
+	printf("%d\n", get_file_sz(f_handle));
+	for (size_t i = 0; i < 10; i++)
+	{
+
+		for (size_t j = 0; j < 10000; j++)
+		{
+			int val = j % 10;
+			struct Data_Row_Node rn0 = create_data_row_node("col1", INT, &val);
+			ins.new_data = &rn0;
+			process_insert(f_handle, ins);
+		}
+
+		printf("%d\n", get_file_sz(f_handle));
+
+	}
+	for (size_t i = 0; i < 10; i++)
+	{
+		del.condition->condition.simple_condition.right_part.value.db_integer = i;
+		int del_num = process_delete(f_handle, del, NORMALIZATION_ALLOW);
+		printf("%d\n", get_file_sz(f_handle));
+	}
+}
 
