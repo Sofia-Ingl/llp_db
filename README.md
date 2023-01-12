@@ -2,7 +2,7 @@
 
 ## Результаты тестирования
 
-- Производительность
+### Производительность
 
   - Insert
   
@@ -25,6 +25,7 @@
 ![Select](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/join_select1.jpg)
 ![Select](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/join_select2.jpg)
 
-- Размер файла (сначала десятикратное добавление 10тыс записей, затем удаление 1/10 части с помощью подбора специфических условий).
+### Размер файла 
+Сначала десятикратное добавление 10тыс записей, затем удаление 1/10 части с помощью подбора специфических условий.
 
 ![File size](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/file_sz.jpg)
