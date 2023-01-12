@@ -373,7 +373,7 @@ void test_select_on_short_test_schema(struct File_Handle* fh) {
 		.query_details = su
 	};
 
-	struct Table_Chain_Result_Set* rs = process_select_with_row_num(fh, sel, 1);
+	struct Table_Chain_Result_Set* rs = process_select_with_row_num(fh, sel, 50);
 	while (rs != NULL) {
 		print_joined_table_rows(rs);
 		rs = result_set_get_next(fh, rs);

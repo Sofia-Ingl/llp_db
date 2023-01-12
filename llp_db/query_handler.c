@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#define DEFAULT_ROW_NUM_IN_SELECT_QUERY 50
 #define DEFAULT_CRITICAL_GAP_RATE 0.2
 #define DEFAULT_CRITICAL_GAP_SIZE 4096
 

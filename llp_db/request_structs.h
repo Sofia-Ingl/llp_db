@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "common_structs.h"
 
-#define DEFAULT_ROW_NUM_IN_SELECT_QUERY 50
-
 enum Request_Type {
 	SELECT,
 	UPDATE,

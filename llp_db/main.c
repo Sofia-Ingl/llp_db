@@ -83,10 +83,10 @@ int main(int argc, char* argv[]) {
 		asymptotics_testing(asymp_fh);
 		file_close(asymp_fh, 0);
 
-		/*char* sizetest_filename = "sizetest";
+		char* sizetest_filename = "sizetest";
 		struct File_Handle* sizetest_fh = file_open_or_create_with_gap_rate_and_sz(sizetest_filename, 0.05, 2048);
 		size_testing(fh);
-		file_close(sizetest_fh, 0);*/
+		file_close(sizetest_fh, 0);
 
 		
 
