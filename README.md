@@ -302,7 +302,7 @@ struct Table_Row_Lists_Bunch {
 void prepare_short_test_schema(struct File_Handle* fh);
 void test_select_on_short_test_schema(struct File_Handle* fh);
 ```
-Тест, по сути, всего один, но зато какой! Аналог на sql и результат приведены ниже:
+Тест, по сути, всего один, но зато какой! Аналог на sql и результат приведены ниже. В скобочках указаны названия таблиц, из которых взяты столбцы. Выравнивание идет к чорту.
 
 ```
 ---task---
