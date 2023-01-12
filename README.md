@@ -294,6 +294,33 @@ struct Table_Row_Lists_Bunch {
 
 ## Результаты тестирования
 
+### Адекватное сохранение таблиц и структуры
+
+Создание модели из нескольких таблиц и заполнение ее сущностями можно посмотреть в файле tests.c.
+В следующих функциях:
+```
+void prepare_short_test_schema(struct File_Handle* fh);
+void test_select_on_short_test_schema(struct File_Handle* fh);
+```
+Тест, по сути, всего один, но зато какой! Аналог на sql и результат приведены ниже:
+
+```
+---task---
+select all data about actual students having LLP in their curriculum:
+---sql---
+select * from student
+join group on student.group_number = group.number
+join curriculum on curriculum.code = group.curriculum_code
+join cur_sub_relation on curriculum.code = cur_sub_relation.curriculum_code
+join subject on subject.code = cur_sub_relation.subject_code
+where (subject.code == 'LLP')
+and (student.actual == TRUE)
+JOINED TABLE
+name(student)   group_number(student)   actual(student)   number(group)   year(group)   curriculum_code(group)   code(curriculum)   name(curriculum)   curriculum_code(cur_sub_relation)   subject_code(cur_sub_relation)   year(cur_sub_relation)   code(subject)   name(subject)   
+Inglikova   P33312   1   P33312   3   SEaCE_1   SEaCE_1   Software engineering and... - 1   SEaCE_1   LLP   3   LLP   Low lvl programming   
+Erehinsky   P33312   1   P33312   3   SEaCE_1   SEaCE_1   Software engineering and... - 1   SEaCE_1   LLP   3   LLP   Low lvl programming 
+```
+
 ### Производительность
 
 Insert
