@@ -222,23 +222,23 @@ struct Table_Row_Lists_Bunch {
 
 ### Производительность
 
-  - Insert
+Insert
   
 ![Insert](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/insert.jpg)
 
-  - Update
+Update
 
 ![Update](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/update.jpg)
 
-  - Delete
+Delete
 
 ![Delete](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/delete.jpg)
 
-  - Single table select
+Single table select
  
 ![Select](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/single_tab_select.jpg)
 
-  - Join select
+Join select
  
 ![Select](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/join_select1.jpg)
 ![Select](https://github.com/Sofia-Ingl/llp_db/blob/master/graphs/join_select2.jpg)
